@@ -51,7 +51,7 @@ end
 -- Find an index/value or index-value pair in Table and all its children tables
 local function DeepFind(Table: {any}, Row: Pair<any, any>): Pair<any, any> | nil
     if #Row ~= 1 then
-        error(concatPrint("Row argument of function DeepFind may only have one key-value pair."), 2)
+        error(concatPrint("Row argument of function DeepFind may only have one key-value pair."), getStackLevel())
     end
     for i,v in pairs(Table) do
         if typeof(v) ~= "table" then
@@ -92,7 +92,7 @@ end
 
 -- Check if method/variable is private
 local function IsPrivate(String: string): boolean
-    if string.match(String, "__%") then
+    if string.match(String, "_%a+") ~= nil then
         return true
     end
     return false
@@ -151,6 +151,14 @@ end
     Enumeration implementation to prevent unexpected values
 --]]
 local enum = {}
+local enumMetatable = {
+    __index = function(_, i): any
+        return enum[i] or error(concatPrint(i .. " is not a valid member of the Enum."), getStackLevel())
+    end,
+    __newindex = function(): ()
+        error(concatPrint("Enums are read-only."), getStackLevel())
+    end
+}
 
 enum._new = function(Name: string, Children: {string: any}): enumPair<any>
 	if enum[Name] ~= nil then
@@ -159,21 +167,17 @@ enum._new = function(Name: string, Children: {string: any}): enumPair<any>
 
 	enum[Name] = Children
 
-	return setmetatable(Children, {
-		__index = function(_, i): any
-			return enum[i] or error(concatPrint(i .. " is not a valid member of the Enum."), getStackLevel())
-		end,
-		__newindex = function(): ()
-			error(concatPrint("Enums are read-only."), getStackLevel())
-		end
-	})
+	return setmetatable(Children, enumMetatable)
 end
 
 enum._get = function(Name: string): enumPair<any>
 	if enum[Name] then
-		return {Name = enum[Name]}
+		return {Name = setmetatable(enum[Name], enumMetatable)}
 	else
-		return DeepFind(enum, {Name = nil})
+		local Result = DeepFind(enum, {Name = nil})
+        if Result ~= nil then
+            return setmetatable(Result, enumMetatable)
+        end
 	end
 end
 
@@ -250,6 +254,7 @@ Runner.new = function(): ConnectionRunner
 end
 
 function Runner:_AddConnection(Cn: ScriptConnection): ()
+	Cn._State = enum.StateEnum.Active
 	table.insert(self._Connections, Cn)
 end
 
