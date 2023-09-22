@@ -1,15 +1,4 @@
-local module = {}
+local enum = {}
 
-export type ScriptSignal = {
-    Connect: "function",
-    DisconnectAll: "function",
-    Fire: "function",
-    Wait: "function",
-    Once: "function",
-}
-
-export type ScriptConnection = {
-    Disconnect: "function",
-}
-
-return module
+local x = enum["test"] or error("no go")
+print(x)
