@@ -87,6 +87,14 @@ end
     Enumeration implementation to prevent unexpected values
 --]]
 local enum = {}
+local enumMetatable = {
+    __index = function(_, i): any
+        return enum[i] or error(concatPrint(i .. " is not a valid member of the Enum."), getStackLevel())
+    end,
+    __newindex = function(): ()
+        error(concatPrint("Enums are read-only."), getStackLevel())
+    end
+}
 
 enum._new = function(Name: string, Children: {string: any}): enumPair<any>
 	if enum[Name] ~= nil then
@@ -95,21 +103,17 @@ enum._new = function(Name: string, Children: {string: any}): enumPair<any>
 
 	enum[Name] = Children
 
-	return setmetatable(Children, {
-		__index = function(_, i): any
-			return enum[i] or error(concatPrint(i .. " is not a valid member of the Enum."), getStackLevel())
-		end,
-		__newindex = function(): ()
-			error(concatPrint("Enums are read-only."), getStackLevel())
-		end
-	})
+	return setmetatable(Children, enumMetatable)
 end
 
 enum._get = function(Name: string): enumPair<any>
 	if enum[Name] then
-		return {Name = enum[Name]}
+		return {Name = setmetatable(enum[Name], enumMetatable)}
 	else
-		return DeepFind(enum, {Name = nil})
+		local Result = DeepFind(enum, {Name = nil})
+        if Result ~= nil then
+            return setmetatable(Result, enumMetatable)
+        end
 	end
 end
 
