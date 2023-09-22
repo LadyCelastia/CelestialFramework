@@ -187,6 +187,7 @@ Runner.new = function(): ConnectionRunner
 end
 
 function Runner:_AddConnection(Cn: ScriptConnection): ()
+	Cn._State = enum.StateEnum.Active
 	table.insert(self._Connections, Cn)
 end
 
