@@ -35,7 +35,7 @@ end
 -- Find an index/value or index-value pair in Table and all its children tables
 local function DeepFind(Table: {any}, Row: Pair<any, any>): Pair<any, any> | nil
 	if #Row ~= 1 then
-		error(concatPrint("Row argument of function DeepFind may only have one key-value pair."), 2)
+		error(concatPrint("Row argument of function DeepFind may only have one key-value pair."), getStackLevel())
 	end
 	for i,v in pairs(Table) do
 		if typeof(v) ~= "table" then
