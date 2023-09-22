@@ -76,7 +76,7 @@ end
 
 -- Check if method/variable is private
 local function IsPrivate(String: string): boolean
-	if string.match(String, "_%a+") then
+	if string.match(String, "_%a+") ~= nil then
 		return true
 	end
 	return false
