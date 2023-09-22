@@ -1,4 +1,89 @@
 --[[
+    LadyCelestia 9/22/2023
+    A quick (and poor) port of Enum, ScriptConnection, ConnectionRunner and ScriptSignal classes from HitboxRemaster.
+--]]
+
+type enumPair<T> = {string: T}
+type Pair<k,v> = {k: v}
+type EnumType = {
+
+}
+export type ScriptConnection = {
+
+}
+export type ConnectionRunner = {
+
+}
+export type ScriptSignal = {
+
+}
+
+local debugMode = true
+
+local HttpService = game:GetService("HttpService")
+local function getStackLevel(): number
+	if debugMode == true then
+		return 1
+	end
+	return 2
+end
+
+-- Concatenate string prefix for console output
+local function concatPrint(String: string): string
+	return "[" .. script.Name .. "]: " .. String
+end
+
+-- Find an index/value or index-value pair in Table and all its children tables
+local function DeepFind(Table: {any}, Row: Pair<any, any>): Pair<any, any> | nil
+	if #Row ~= 1 then
+		error(concatPrint("Row argument of function DeepFind may only have one key-value pair."), 2)
+	end
+	for i,v in pairs(Table) do
+		if typeof(v) ~= "table" then
+			if Row[i] ~= nil then
+				return {i = v}
+			else
+				for _,v2 in pairs(Row) do
+					if v == v2 then
+						return {i = v}
+					end
+				end
+			end
+		else
+			local RecursiveResult = DeepFind(v, Row)
+			if RecursiveResult ~= nil then
+				return RecursiveResult
+			end
+		end
+	end
+	return nil
+end
+
+-- table.remove en mass
+local function CullTable(TableToCull: Pair<any, any>, CullingList: Pair<number, any>): Pair<any, any>
+	for i = 1, #TableToCull do
+		local target = CullingList[i]
+		if TableToCull[target] then
+			table.remove(TableToCull, target)
+			for i2, v in ipairs(CullingList) do
+				if v > target then
+					CullingList[i2] -= 1
+				end
+			end
+		end
+	end
+	return TableToCull
+end
+
+-- Check if method/variable is private
+local function IsPrivate(String: string): boolean
+	if string.match(String, "_%a+") then
+		return true
+	end
+	return false
+end
+
+--[[
     @class Enum
     Enumeration implementation to prevent unexpected values
 --]]
@@ -218,3 +303,5 @@ function Signal:Destroy(): ()
 	self._ActiveRunner:Destroy()
 	self = {_State = enum.StateEnum.Dead}
 end
+
+return Signal
