@@ -18,8 +18,7 @@ export type ScriptSignal = {
 
 }
 
-local debugMode = true
-
+local debugMode = false
 local HttpService = game:GetService("HttpService")
 local function getStackLevel(): number
 	if debugMode == true then
