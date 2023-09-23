@@ -5,17 +5,47 @@
 
 type enumPair<T> = {string: T}
 type Pair<k,v> = {k: v}
-type EnumType = {
-
-}
 export type ScriptConnection = {
+	_Connected: boolean,
+	_Signal: ScriptSignal,
+	_Function: (any) -> (any),
+	_Identifier: string,
+	_Once: boolean,
+	_State: string,
+	_Fire: (any) -> (),
 
+	new: (ScriptSignal, (any), boolean?) -> (ScriptConnection),
+	StateEnum: {enumPair<string>},
+	GetIdentifier: () -> (string),
+	Disconnect: () -> ()
 }
 export type ConnectionRunner = {
+	_Connections: {ScriptConnection},
+	_State: string,
+	_AddConnection: (ScriptConnection) -> (),
+	_RemoveConnection: (string) -> (),
+	_CleanUp: () -> (),
+	_GetConnections: () -> (Pair<number, ScriptConnection>),
+	_FireOne: (string, {any}) -> (),
+	_FireAll: (any) -> (),
 
+	new: () -> (ConnectionRunner),
+	StateEnum: {enumPair<string>},
+	Destroy: () -> ()
 }
 export type ScriptSignal = {
+	_ActiveRunner: ConnectionRunner,
+	_State: string,
 
+	StateEnum: {enumPair<string>},
+	Connect: ((any), boolean?) -> (ScriptConnection),
+	DisconnectAll: () -> (),
+	DisconnectOne: (string) -> (),
+	Once: ((any)) -> (ScriptConnection),
+	Fire: (any) -> (),
+	FireOne: (string, {any}) -> (),
+	GetState: () -> (string),
+	Destroy: () -> ()
 }
 
 local debugMode = false
