@@ -1,4 +1,9 @@
 --[[
+	LadyCelestia 9/23/2023
+	A complete overhaul of HitboxMaster. Type-safe.
+--]]
+
+--[[
     @define
     @type
     Type definitions
@@ -8,7 +13,7 @@ type Pair<k,v> = {k: v}
 type BezierPoints = {
 	Start: Vector3,
 	Control1: Vector3,
-	Control2: Vector3?,
+	Control2: Vector3 | nil,
 	End: Vector3
 }
 export type ScriptConnection = {
@@ -43,6 +48,7 @@ export type ScriptSignal = {
 	_ActiveRunner: ConnectionRunner,
 	_State: string,
 
+	new: () -> (ScriptSignal),
 	StateEnum: {enumPair<string>},
 	Connect: ((any), boolean?) -> (ScriptConnection),
 	DisconnectAll: () -> (),
@@ -54,13 +60,65 @@ export type ScriptSignal = {
 	Destroy: () -> ()
 }
 export type TrajectoryType = {
+	_DirectionalVector: Vector3 | nil,
+	_Length: number,
+	_Completion: number,
+	_Points: Pairs<string, Vector3>,
+	_GetBezierMode: () -> (string),
 
+	new: (Pair<string, any>) -> (TrajectoryType),
+	Construct: (string, Pair<string, any>) -> (boolean),
+	Deconstruct: () -> (),
+	Destroy: () -> (),
+	ConstructionEnum: enumPair<string>,
+	BezierEnum: enumPair<string>,
+	ConstructionMode: string,
+	Velocity: number
 }
 export type HitboxType = {
+	_Attachment: attachment | nil,
+	_CurrentFrame: number,
+	_CanWarn: boolean,
+	_Visual: BasePart | nil,
 
+	new: (Pair<string, any>) -> (HitboxType),
+	Visualize: () -> (BasePart | nil),
+	Unvisualize: (boolean) -> (),
+	Activate: () -> (),
+	Deactivate: () -> (),
+	GetCurrentSerial: () -> (number),
+	GetConstructionEnum: () -> (enumPair<string>),
+	GetConstructionMode: () -> (string),
+	GetCurrentMode: () -> (string),
+	GetVelocity: () -> (number),
+	SetVelocity: (number) -> (),
+	AddIgnore: (Instance) -> (boolean),
+	RemoveIgnore: (Instance) -> (number),
+	IsHitboxBackstab: (BasePart, HitboxDataBundle) -> (boolean),
+	IsBackstab: (BasePart, Model) -> (boolean),
+	Destroy: () -> (),
+	ShapeEnum: enumPair<string>,
+	ModeEnum: enumPair<string>,
+	StateEnum: enumPair<string>,
+	Hit: ScriptSignal,
+	Trajectory: TrajectoryType,
+	Serial: number,
+	Shape: string,
+	Position: Vector3,
+	Pierce: number,
+	Debounce: number,
+	LifeTime: number,
+	Orientation: Vector3,
+	CopyCFrame: BasePart,
+	OverlapParams: OverlapParams,
+	Active: boolean,
+	Radius: number,
+	Size: Vector3,
 }
 export type HitboxDataBundle = {
-
+	Position: Vector3,
+	Radius: number,
+	Size: Vector3
 }
 
 --[[
@@ -69,6 +127,7 @@ export type HitboxDataBundle = {
 --]]
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 local DebugMode = true
 local HitboxSerial = 0
 local ActiveHitboxes = {}
@@ -141,11 +200,6 @@ local function IsPrivate(String: string): boolean
     return false
 end
 
--- Linear interpolation implementation for non-vector datatypes
-local function Lerp(a: LerpValue, b: LerpValue, c: LerpValue, t: number): LerpValue
-    return a + (b - a) * t
-end
-
 -- Factorized quadratic bezier equation
 local function quadbez(a: LerpValue, b: LerpValue, c:LerpValue, t: number): LerpValue
     return (1 - t)^2*a + 2*(1 - t)*t*b + t^2*c
@@ -189,13 +243,124 @@ local function cubicbezlen(startPoint: Vector3, controlPoint1: Vector3, controlP
     return seglen(segments)
 end
 
+-- Spatial query
+local function checkAtPos(self: HitboxType): {BasePart} | nil
+	if self.Shape == "Sphere" then
+		return workspace:GetPartBoundsInRadius(self.Position, self.Radius, self.OverlapParams) or {}
+	elseif self.Shape == "Box" then
+		if self.Orientation ~= nil then
+			return workspace:GetPartBoundsInBox(CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z)), self.Size, self.OverlapParams) or {}
+		elseif self.CopyCFrame ~= nil then
+			return workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {}
+		else
+			return workspace:GetPartBoundsInBox(CFrame.new(self.Position), self.Size, self.OverlapParams) or {}
+		end
+	else
+		return nil
+	end
+end
+
 -- Main Hitbox runner
 local function UpdateHitboxes(_, deltaTime: number): ()
 	for _,self in pairs(ActiveHitboxes) do
 		if self.Active == true then
 			self._CurrentFrame += 1
 			self.LifeTime -= deltaTime
+			local HitboxMode = self:GetCurrentMode()
+			if HitboxMode == "Linear" then
+				self.Position += (self.Trajectory._DirectionalVector * (self:GetVelocity() * deltaTime))
+			elseif HitboxMode == "Bezier" then
+				local interpolationGain = (self:GetVelocity() * deltaTime) / self.Trajectory._Length
+				if interpolationGain > (1 - self.Trajectory._Completion) then
+					interpolationGain = (1 - self.Trajectory._Completion)
+				end
+				self.Trajectory._Completion += interpolationGain
+				self.BezierCompletion += interpolationGain
+				
+				if self.BezierMode == "Quadratic" then
+					self.Position = quadbez(self.StartPoint, self.ControlPoint1, self.EndPoint, self.Trajectory._Completion)
+				elseif self.BezierMode == "Cubic" then
+					self.Position = cubicbez(self.StartPoint, self.ControlPoint1, self.ControlPoint2, self.EndPoint, self.Trajectory._Completion)
+				end
+			elseif HitboxMode == "Attachment" then
+				self.Position = self.Attachment.WorldCFrame.Position
+			end
 
+			if self._CurrentFrame >= 5 and self._Visual ~= nil then
+				self._CurrentFrame = 0
+				if self.Shape == "Sphere" then
+					self.Visual.Shape = Enum.PartType.Ball
+					self.Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
+				else
+					self.Visual.Shape = Enum.PartType.Block
+					self.Visual.Size = self.Size
+				end
+				
+				if self.CopyCFrame ~= nil then
+					self.Visual.CFrame = self.CopyCFrame.CFrame
+				elseif self.Position ~= nil then
+					if self.Orientation ~= nil then
+						self.Visual.CFrame = CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z))
+					else
+						self.Visual.Position = self.Position
+					end
+				end
+			end
+
+			if self.Pierce > 0 then
+				local result = checkAtPos(self)
+				if result == nil and self._CanWarn == true then
+					self._CanWarn = false
+					task.delay(5, function()
+						self._CanWarn = true
+				    end)
+					warn(concatPrint("Hitbox serial " ..self.Serial.. " has an invalid shape."))
+				elseif #result > 0 then
+					local hitHumanoids: {humanoid: BasePart} = {}
+					local registeredHumanoids: {Humanoid} = {}
+
+					for _,v in ipairs(result) do
+						local hum = v.Parent:FindFirstChildOfClass("Humanoid")
+						if hum ~= nil then
+							if v.Parent:FindFirstChildOfClass("ForceField") == nil and v.Parent:FindFirstChild("HitboxSerial" .. self.Serial) == nil and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+								table.insert(hitHumanoids, {hum, v})
+							end
+						end
+					end
+
+					for _,v in pairs(hitHumanoids) do
+						local canHit = true
+						for _,v2 in ipairs(registeredHumanoids) do
+							if v[1] == v2 then
+								canHit = false
+								break
+							end
+						end
+						if canHit == true then
+							if self.Debounce > 0 then
+								local newSerial: BoolValue = Instance.new("BoolValue")
+								Debris:AddItem(newSerial, self.Debounce)
+								newSerial.Name = "HitboxSerial" .. self.Serial
+								newSerial.Value = true
+								newSerial.Parent = v.Parent
+							end
+							self.Hit:Fire(v[1], v[2], {
+								["Position"] = self.Position,
+								["Radius"] = self.Radius or 0,
+								["Size"] = self.Size or Vector3.new(0, 0, 0)
+							})
+							table.insert(registeredHumanoids, v[1])
+							self.Pierce -= 1
+							if self.Pierce <= 0 then
+								break
+							end
+						end
+					end
+				end
+			end
+			if (self.LifeTime <= 0 and HitboxMode ~= "Bezier") or (HitboxMode == "Bezier" and self.Trajectory._Completion >= 1) then
+				self:Destroy()
+			end
 		end
 	end
 end
@@ -247,7 +412,7 @@ enum._new("StateEnum", {Active = "Active", Paused = "Paused", Dead = "Dead"})
 enum._new("ConstructionMode", {None = nil, Linear = "Linear", Bezier = "Bezier"})
 enum._new("BezierMode", {Quadratic = "Quad", Cubic = "Cubic"})
 enum._new("HitboxShape", {Box = "Box", Sphere = "Sphere"})
-enum._new("HitboxMode", {Attachment = "Attachment", Linear = "Linear", Bezier = "Bezier"})
+enum._new("HitboxMode", {None = "None", Attachment = "Attachment", Linear = "Linear", Bezier = "Bezier", Orientation = "Orientation", Copying = "Copy"})
 
 
 --[[
@@ -444,6 +609,7 @@ Trajectory.new = function(Fields: {Pair<string, any>}): TrajectoryType
 	Fields = Fields or {}
 	local self = setmetatable({}, Trajectory)
 
+	self._State = enum.StateEnum.Active
 	self.ConstructionMode = enum.ConstructionMode.None
 
 	-- Linear Construction
@@ -475,6 +641,11 @@ function Trajectory:Construct(Mode: string, Fields: {Pair<string, any>}): boolea
 			self._DirectionalVector = Fields["DirectionalVector"] or error(concatPrint("Trajectory:Construct(Linear) is missing field DirectionalVector."), getStackLevel())
 		elseif Mode == enum.ConstructionMode.Bezier then
 			self._Points = Fields["BezierPoints"] or error(concatPrint("Trajectory:Construct(Bezier) is missing field BezierPoints."), getStackLevel())
+			if self:_GetBezierMode() == enum.BezierMode.Quadratic then
+				self._Length = quadbezlen(self._Points["Start"], self._Points["Control1"], self._Points["End"])
+			else
+				self._Length = cubicbezlen(self._Points["Start"], self._Points["Control1"], self._Points["Control2"], self._Points["End"])
+			end
 		end
 		self.Velocity = Fields["Velocity"] or self.Velocity
 		self.ConstructionMode = Mode
@@ -489,6 +660,10 @@ function Trajectory:Deconstruct(): ()
 	self._Length = 0
 	self._Completion = 0
 	self._Points = {}
+end
+
+function Trajectory:Destroy(): ()
+	self = {_State = enum.StateEnum.Dead}
 end
 
 --[[
@@ -509,8 +684,6 @@ Hitbox.new = function(Fields: {Pair<string, any>}): HitboxType
     local self = setmetatable({}, Hitbox)
 
     -- Private variables
-    self._Serial = nil
-    self._Constructed = nil
     self._Attachment = Fields["Attachment"]
 	self._CurrentFrame = 0
 	self._CanWarn = true
@@ -525,24 +698,22 @@ Hitbox.new = function(Fields: {Pair<string, any>}): HitboxType
 	self.Pierce = Fields["Pierce"] or 1
 	self.Debounce = Fields["Debounce"] or 5
 	self.LifeTime = Fields["LifeTime"] or 1
+	self.Orientation = Fields["Orientation"]
+	self.CopyCFrame = Fields["CopyCFrame"]
 	self.OverlapParams = OverlapParams.new()
 	self.OverlapParams.FilterType = Enum.RaycastFilterType.Exclude
 	self.OverlapParams.FilterDescendantsInstances = {}
 	self.OverlapParams.RespectCanCollide = false
 	self.OverlapParams.MaxParts = 0
 	self.Active = false
+	self.State = enum.StateEnum.Paused
 
 	self.Radius = Fields["Radius"] or 3 -- Used for Sphere shape
 	self.Size = Fields["Size"] or Vector3.new(3, 3, 3) -- Used for Box shape
 
-	table.insert(ActiveHitboxes, self)
+	ActiveHitboxes[self.Serial] = self
 
 	return self
-end
-
-function Hitbox:GetCurrentMode(): string
-	if self._Attachment ~= nil then
-	end
 end
 
 function Hitbox:Visualize(): BasePart | nil
@@ -573,9 +744,11 @@ function Hitbox:Visualize(): BasePart | nil
 	return self._Visual
 end
 
-function Hitbox:Unvisualize(): ()
+function Hitbox:Unvisualize(doNotWarn: boolean): ()
 	if self._Visual == nil then
-		warn(concatPrint("Hitbox is not visualizing."))
+		if doNotWarn ~= true then
+			warn(concatPrint("Hitbox is not visualizing."))
+		end
 		return false
 	end
 	
@@ -587,10 +760,12 @@ end
 
 function Hitbox:Activate(): ()
 	self.Active = true
+	self.State = enum.StateEnum.Active
 end
 
 function Hitbox:Deactivate(): ()
 	self.Active = false
+	self.State = enum.StateEnum.Paused
 end
 
 function Hitbox:GetCurrentSerial(): number
@@ -605,7 +780,19 @@ function Hitbox:GetConstructionMode(): string
 	return self.Trajectory.ConstructionMode
 end
 
-function Hitbox:GetVelocity(): ()
+function Hitbox:GetCurrentMode(): string
+	if self._Attachment ~= nil then
+		return enum.HitboxMode.Attachment
+	elseif self.Trajectory.ConstructionMode == enum.ConstructionMode.Linear then
+		return enum.HitboxMode.Linear
+	elseif self.Trajectory.ConstructionMode == enum.ConstructionMode.Bezier then
+		return enum.HitboxMode.Bezier
+	else
+		return enum.HitboxMode.None
+	end
+end
+
+function Hitbox:GetVelocity(): number
 	return self.Trajectory.Velocity
 end
 
@@ -657,7 +844,7 @@ function Hitbox:IsHitboxBackstab(Part: BasePart, DataBundle: HitboxDataBundle): 
 end
 
 function Hitbox:IsBackstab(Part: BasePart, Character: Model): boolean
-	local root: BasePart | nil = Character:FindFirstChild("HumanoidRootPart")
+	local root: BasePart = Character:FindFirstChild("HumanoidRootPart")
     if root then
 		if root.CFrame:inverse() * Part.CFrame < 0 then
 			return true
@@ -668,7 +855,13 @@ function Hitbox:IsBackstab(Part: BasePart, Character: Model): boolean
 end
 
 function Hitbox:Destroy(): ()
-
+	self:Deactivate()
+	self.Hit:DisconnectAll()
+	self.Hit:Destroy()
+	self.Trajectory:Destroy()
+	self:Unvisualize()
+	ActiveHitboxes[self.Serial] = nil
+	self = {State = enum.StateEnum.Dead}
 end
 
 RunService.Stepped:Connect(UpdateHitboxes)
