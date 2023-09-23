@@ -787,6 +787,10 @@ function Hitbox:GetCurrentMode(): string
 		return enum.HitboxMode.Linear
 	elseif self.Trajectory.ConstructionMode == enum.ConstructionMode.Bezier then
 		return enum.HitboxMode.Bezier
+	elseif self.Orientation ~= nil and self.Orientation ~= Vector3.new(0, 0, 0) then
+		return enum.HitboxMode.Orientation
+	elseif self.CopyCFrame ~= nil then
+		return enum.HitboxMode.CopyCFrame
 	else
 		return enum.HitboxMode.None
 	end
