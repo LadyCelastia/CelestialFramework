@@ -243,23 +243,6 @@ local function cubicbezlen(startPoint: Vector3, controlPoint1: Vector3, controlP
     return seglen(segments)
 end
 
--- Spatial query
-local function checkAtPos(self: HitboxType): {BasePart} | nil
-	if self.Shape == "Sphere" then
-		return workspace:GetPartBoundsInRadius(self.Position, self.Radius, self.OverlapParams) or {}
-	elseif self.Shape == "Box" then
-		if self.Orientation ~= nil then
-			return workspace:GetPartBoundsInBox(CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z)), self.Size, self.OverlapParams) or {}
-		elseif self.CopyCFrame ~= nil then
-			return workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {}
-		else
-			return workspace:GetPartBoundsInBox(CFrame.new(self.Position), self.Size, self.OverlapParams) or {}
-		end
-	else
-		return nil
-	end
-end
-
 -- Main Hitbox runner
 local function UpdateHitboxes(_, deltaTime: number): ()
 	for _,self in pairs(ActiveHitboxes) do
@@ -308,14 +291,25 @@ local function UpdateHitboxes(_, deltaTime: number): ()
 			end
 
 			if self.Pierce > 0 then
-				local result = checkAtPos(self)
-				if result == nil and self._CanWarn == true then
+				local result: {BasePart} = {}
+				if self.Shape == "Sphere" then
+					result = workspace:GetPartBoundsInRadius(self.Position, self.Radius, self.OverlapParams) or {}
+				elseif self.Shape == "Box" then
+					if typeof(self.Orientation) == "Vector3" then
+						result = workspace:GetPartBoundsInBox(CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z)), self.Size, self.OverlapParams) or {}
+					elseif typeof(self.CopyCFrame) == "BasePart" then
+						result = workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {}
+					else
+						result = workspace:GetPartBoundsInBox(CFrame.new(self.Position), self.Size, self.OverlapParams) or {}
+					end
+				elseif self._CanWarn == true then
 					self._CanWarn = false
 					task.delay(5, function()
 						self._CanWarn = true
 				    end)
-					warn(concatPrint("Hitbox serial " ..self.Serial.. " has an invalid shape."))
-				elseif #result > 0 then
+					warn(concatPrint("Hitbox " .. self.Serial .. " has an invalid shape."))
+				end
+				if #result > 0 then
 					local hitHumanoids: {humanoid: BasePart} = {}
 					local registeredHumanoids: {Humanoid} = {}
 
