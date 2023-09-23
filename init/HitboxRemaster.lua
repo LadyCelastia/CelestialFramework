@@ -1,4 +1,3 @@
---!strict
 --[[
     @define
     @type
@@ -6,20 +5,61 @@
 --]]
 type enumPair<T> = {string: T}
 type Pair<k,v> = {k: v}
-type LerpValue = Vector2 | Vector3 | CFrame | UDim2 | UDim | number
-type RunnerType = {
-
-}
-type EnumType = {
-
-}
-export type ScriptSignal = {
-
+type BezierPoints = {
+	Start: Vector3,
+	Control1: Vector3,
+	Control2: Vector3?,
+	End: Vector3
 }
 export type ScriptConnection = {
+	_Connected: boolean,
+	_Signal: ScriptSignal,
+	_Function: (any) -> (any),
+	_Identifier: string,
+	_Once: boolean,
+	_State: string,
+	_Fire: (any) -> (),
+
+	new: (ScriptSignal, (any), boolean?) -> (ScriptConnection),
+	StateEnum: {enumPair<string>},
+	GetIdentifier: () -> (string),
+	Disconnect: () -> ()
+}
+export type ConnectionRunner = {
+	_Connections: {ScriptConnection},
+	_State: string,
+	_AddConnection: (ScriptConnection) -> (),
+	_RemoveConnection: (string) -> (),
+	_CleanUp: () -> (),
+	_GetConnections: () -> (Pair<number, ScriptConnection>),
+	_FireOne: (string, {any}) -> (),
+	_FireAll: (any) -> (),
+
+	new: () -> (ConnectionRunner),
+	StateEnum: {enumPair<string>},
+	Destroy: () -> ()
+}
+export type ScriptSignal = {
+	_ActiveRunner: ConnectionRunner,
+	_State: string,
+
+	StateEnum: {enumPair<string>},
+	Connect: ((any), boolean?) -> (ScriptConnection),
+	DisconnectAll: () -> (),
+	DisconnectOne: (string) -> (),
+	Once: ((any)) -> (ScriptConnection),
+	Fire: (any) -> (),
+	FireOne: (string, {any}) -> (),
+	GetState: () -> (string),
+	Destroy: () -> ()
+}
+export type TrajectoryType = {
 
 }
 export type HitboxType = {
+
+}
+export type HitboxDataBundle = {
 
 }
 
@@ -28,7 +68,10 @@ export type HitboxType = {
     Definitions
 --]]
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 local DebugMode = true
+local HitboxSerial = 0
+local ActiveHitboxes = {}
 
 --[[
     @function
@@ -146,6 +189,17 @@ local function cubicbezlen(startPoint: Vector3, controlPoint1: Vector3, controlP
     return seglen(segments)
 end
 
+-- Main Hitbox runner
+local function UpdateHitboxes(_, deltaTime: number): ()
+	for _,self in pairs(ActiveHitboxes) do
+		if self.Active == true then
+			self._CurrentFrame += 1
+			self.LifeTime -= deltaTime
+
+		end
+	end
+end
+
 --[[
     @class Enum
     Enumeration implementation to prevent unexpected values
@@ -191,6 +245,10 @@ end
 
 enum._new("StateEnum", {Active = "Active", Paused = "Paused", Dead = "Dead"})
 enum._new("ConstructionMode", {None = nil, Linear = "Linear", Bezier = "Bezier"})
+enum._new("BezierMode", {Quadratic = "Quad", Cubic = "Cubic"})
+enum._new("HitboxShape", {Box = "Box", Sphere = "Sphere"})
+enum._new("HitboxMode", {Attachment = "Attachment", Linear = "Linear", Bezier = "Bezier"})
+
 
 --[[
     @class ScriptConnection
@@ -373,28 +431,246 @@ function Signal:Destroy(): ()
 end
 
 --[[
+    @class Trajectory
+	Child of @Hitbox
+	Enables trajectory construction
+--]]
+local Trajectory = {}
+Trajectory.__index = Trajectory
+Trajectory.ConstructionEnum = enum._get("ConstructionMode")
+Trajectory.BezierEnum = enum._get("BezierMode")
+
+Trajectory.new = function(Fields: {Pair<string, any>}): TrajectoryType
+	Fields = Fields or {}
+	local self = setmetatable({}, Trajectory)
+
+	self.ConstructionMode = enum.ConstructionMode.None
+
+	-- Linear Construction
+	self._DirectionalVector = nil
+
+	-- Bezier Construction
+	self._Length = 0
+	self._Completion = 0
+	self._Points = {}
+
+	-- Universal
+	self.Velocity = Fields["Velocity"] or 10
+
+	return self
+end
+
+function Trajectory:_GetBezierMode(): string
+	if self._Points.Control2 == nil then
+		return enum.BezierMode.Quadratic
+	else
+		return enum.BezierMode.Cubic
+	end
+end
+
+function Trajectory:Construct(Mode: string, Fields: {Pair<string, any>}): boolean
+	Fields = Fields or {}
+	if Mode ~= enum.ConstructionMode.None and enum._isEnum(Mode) == true then
+		if Mode == enum.ConstructionMode.Linear then
+			self._DirectionalVector = Fields["DirectionalVector"] or error(concatPrint("Trajectory:Construct(Linear) is missing field DirectionalVector."), getStackLevel())
+		elseif Mode == enum.ConstructionMode.Bezier then
+			self._Points = Fields["BezierPoints"] or error(concatPrint("Trajectory:Construct(Bezier) is missing field BezierPoints."), getStackLevel())
+		end
+		self.Velocity = Fields["Velocity"] or self.Velocity
+		self.ConstructionMode = Mode
+		return true
+	end
+	return false
+end
+
+function Trajectory:Deconstruct(): ()
+	self.ConstructionMode = enum.ConstructionMode.None
+	self._DirectionalVector = nil
+	self._Length = 0
+	self._Completion = 0
+	self._Points = {}
+end
+
+--[[
     @main
     @class Hitbox
-    @parent enum, ScriptSignal
+    @parent enum, ScriptSignal, Trajectory
     Hitbox class
 --]]
 local Hitbox = {}
 Hitbox.__index = Hitbox
+Hitbox.ShapeEnum = enum._get("HitboxShape")
+Hitbox.ModeEnum = enum._get("HitboxMode")
+Hitbox.StateEnum = enum._get("StateEnum")
 
-Hitbox.ConstructionEnum = enum._get("ConstructionMode")
-
-Hitbox.new = function(attachment: Attachment): HitboxType
+Hitbox.new = function(Fields: {Pair<string, any>}): HitboxType
+	Fields = Fields or {}
+	HitboxSerial += 1
     local self = setmetatable({}, Hitbox)
 
     -- Private variables
     self._Serial = nil
     self._Constructed = nil
-    self._Attachment = attachment
-    self._UseAttachment = (attachment ~= nil)
-    self._ConstructionMode = enum.ConstructionMode.None
+    self._Attachment = Fields["Attachment"]
+	self._CurrentFrame = 0
+	self._CanWarn = true
+	self._Visual = nil
 
     -- Public variables
     self.Hit = Signal.new()
+	self.Trajectory = Trajectory.new()
+	self.Serial = HitboxSerial
+	self.Shape = Fields["Shape"] or enum.HitboxShape.Box
+	self.Position = Fields["Position"] or Vector3.new(0, 0, 0)
+	self.Pierce = Fields["Pierce"] or 1
+	self.Debounce = Fields["Debounce"] or 5
+	self.LifeTime = Fields["LifeTime"] or 1
+	self.OverlapParams = OverlapParams.new()
+	self.OverlapParams.FilterType = Enum.RaycastFilterType.Exclude
+	self.OverlapParams.FilterDescendantsInstances = {}
+	self.OverlapParams.RespectCanCollide = false
+	self.OverlapParams.MaxParts = 0
+	self.Active = false
+
+	self.Radius = Fields["Radius"] or 3 -- Used for Sphere shape
+	self.Size = Fields["Size"] or Vector3.new(3, 3, 3) -- Used for Box shape
+
+	table.insert(ActiveHitboxes, self)
+
+	return self
 end
+
+function Hitbox:GetCurrentMode(): string
+	if self._Attachment ~= nil then
+	end
+end
+
+function Hitbox:Visualize(): BasePart | nil
+	if self._Visual ~= nil then
+		warn(concatPrint("Hitbox is already visualizing."))
+		return nil
+	end
+
+	self._Visual = Instance.new("Part")
+	self._Visual.Name = "HitboxVisualization" .. tostring(self:GetSerial())
+	self._Visual.Anchored = true
+	self._Visual.CanCollide = false
+	self._Visual.BrickColor = BrickColor.new("Really red")
+	self._Visual.Transparency = 0.75
+	self._Visual.Material = Enum.Material.SmoothPlastic
+	self._Visual.Position = self.Position or Vector3.new(0, 0, 0)
+	
+	if self.Shape == enum.HitboxShape.Sphere then
+	    self._Visual.Shape = Enum.PartType.Ball
+		self._Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
+	else
+		self._Visual.Shape = Enum.PartType.Block
+		self._Visual.Size = self.Size
+	end
+
+	self._Visual.Parent = workspace
+	
+	return self._Visual
+end
+
+function Hitbox:Unvisualize(): ()
+	if self._Visual == nil then
+		warn(concatPrint("Hitbox is not visualizing."))
+		return false
+	end
+	
+	self._Visual:Destroy()
+	self._Visual = nil
+	
+	return true
+end
+
+function Hitbox:Activate(): ()
+	self.Active = true
+end
+
+function Hitbox:Deactivate(): ()
+	self.Active = false
+end
+
+function Hitbox:GetCurrentSerial(): number
+	return HitboxSerial
+end
+
+function Hitbox:GetConstructionEnum(): enumPair<string>
+	return self.Trajectory.ConstructionEnum
+end
+
+function Hitbox:GetConstructionMode(): string
+	return self.Trajectory.ConstructionMode
+end
+
+function Hitbox:GetVelocity(): ()
+	return self.Trajectory.Velocity
+end
+
+function Hitbox:SetVelocity(velocity: number): ()
+	self.Trajectory.Velocity = velocity
+end
+
+function Hitbox:AddIgnore(object: Instance): boolean
+	if typeof(object) == "Instance" then
+		if object:IsA("BasePart") or object:IsA("Model") then
+			self.OverlapParams.FilterDescendantsInstances = table.insert(self.OverlapParams.FilterDescendantsInstances or {}, object)
+			return true
+		end
+	end
+	return false
+end
+
+function Hitbox:RemoveIgnore(object: Instance): number
+	if typeof(object) == "Instance" then
+		if object:IsA("BasePart") or object:IsA("Model") then
+			local indexes = {}
+			for i,v in ipairs(self.OverlapParams.FilterDescendantsInstances) do
+				if v == object then
+					table.insert(indexes, i)
+				end
+			end
+			for i,v in ipairs(indexes) do
+				table.remove(self.OverlapParams.FilterDescendantsInstances, v)
+				for i2,v2 in ipairs(indexes) do
+					if i2 > i and v2 > v then
+						indexes[i2] -= 1
+					end
+				end
+			end
+			return #indexes
+		end
+	end
+	return 0
+end
+
+function Hitbox:IsHitboxBackstab(Part: BasePart, DataBundle: HitboxDataBundle): boolean
+	if DataBundle.Radius > 100 or DataBundle.Size.X > 50 or DataBundle.Size.Y > 50 or DataBundle.Size.Z > 50 then
+		warn(concatPrint("Hitbox is too large to support Hitbox:IsHitboxBackstab(). (Maximum 50 magnitude per-axis)"))
+		return false
+	elseif CFrame.new(DataBundle.Position):inverse() * Part.CFrame < 0 then
+		return true
+	end
+	return false
+end
+
+function Hitbox:IsBackstab(Part: BasePart, Character: Model): boolean
+	local root: BasePart | nil = Character:FindFirstChild("HumanoidRootPart")
+    if root then
+		if root.CFrame:inverse() * Part.CFrame < 0 then
+			return true
+		end
+	end
+	warn(concatPrint("Provided Character for Hitbox:IsBackstab() has no HumanoidRootPart."))
+	return false
+end
+
+function Hitbox:Destroy(): ()
+
+end
+
+RunService.Stepped:Connect(UpdateHitboxes)
 
 return Hitbox
