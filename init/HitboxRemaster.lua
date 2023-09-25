@@ -13,7 +13,7 @@ type Pair<k,v> = {k: v}
 type BezierPoints = {
 	Start: Vector3,
 	Control1: Vector3,
-	Control2: Vector3 | nil,
+	Control2: Vector3?,
 	End: Vector3
 }
 type LerpValue = Vector3 | Vector2 | CFrame | number | UDim2 | UDim | Color3
@@ -61,7 +61,7 @@ export type ScriptSignal = {
 	Destroy: () -> ()
 }
 export type TrajectoryType = {
-	_DirectionalVector: Vector3 | nil,
+	_DirectionalVector: Vector3?,
 	_Length: number,
 	_Completion: number,
 	_Points: Pair<string, Vector3>,
@@ -77,13 +77,13 @@ export type TrajectoryType = {
 	Velocity: number
 }
 export type HitboxType = {
-	_Attachment: Attachment | nil,
+	_Attachment: Attachment?,
 	_CurrentFrame: number,
 	_CanWarn: boolean,
-	_Visual: BasePart | nil,
+	_Visual: BasePart?,
 
 	new: (Pair<string, any>) -> (HitboxType),
-	Visualize: () -> (BasePart | nil),
+	Visualize: () -> (BasePart?),
 	Unvisualize: (boolean) -> (),
 	Activate: () -> (),
 	Deactivate: () -> (),
@@ -152,7 +152,7 @@ local function concatPrint(String: string): string
 end
 
 -- Find an index/value or index-value pair in Table and all its children tables
-local function DeepFind(Table: {any}, Row: Pair<any, any>): Pair<any, any> | nil
+local function DeepFind(Table: {any}, Row: Pair<any, any>): Pair<any, any>?
     if #Row ~= 1 then
         error(concatPrint("Row argument of function DeepFind may only have one key-value pair."), getStackLevel())
     end
@@ -713,7 +713,7 @@ Hitbox.new = function(Fields: {Pair<string, any>}): HitboxType
 	return self
 end
 
-function Hitbox:Visualize(): BasePart | nil
+function Hitbox:Visualize(): BasePart?
 	if self._Visual ~= nil then
 		warn(concatPrint("Hitbox is already visualizing."))
 		return nil
