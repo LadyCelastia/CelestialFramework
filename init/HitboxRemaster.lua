@@ -855,6 +855,10 @@ function Hitbox:IsBackstab(Part: BasePart, Character: Model): boolean
 	return false
 end
 
+function Hitbox:GetEnum()
+    return setmetatable(enum, enumMetatable)
+end
+
 function Hitbox:Destroy(): ()
 	self:Deactivate()
 	self.Hit:DisconnectAll()
