@@ -244,120 +244,132 @@ local function cubicbezlen(startPoint: Vector3, controlPoint1: Vector3, controlP
     return seglen(segments)
 end
 
+-- Spatial query main
+local function HitReg(self: HitboxType, deltaTime: number): {BasePart}
+    local HitboxMode = self:GetCurrentMode()
+    if HitboxMode == "Linear" then
+        self.Position += (self.Trajectory._DirectionalVector * (self:GetVelocity() * deltaTime))
+    elseif HitboxMode == "Bezier" then
+        local interpolationGain = (self:GetVelocity() * deltaTime) / self.Trajectory._Length
+        if interpolationGain > (1 - self.Trajectory._Completion) then
+            interpolationGain = (1 - self.Trajectory._Completion)
+        end
+        self.Trajectory._Completion += interpolationGain
+        self.BezierCompletion += interpolationGain
+        
+        if self.BezierMode == "Quadratic" then
+            self.Position = quadbez(self.StartPoint, self.ControlPoint1, self.EndPoint, self.Trajectory._Completion)
+        elseif self.BezierMode == "Cubic" then
+            self.Position = cubicbez(self.StartPoint, self.ControlPoint1, self.ControlPoint2, self.EndPoint, self.Trajectory._Completion)
+        end
+    elseif HitboxMode == "Attachment" then
+        self.Position = self.Attachment.WorldCFrame.Position
+    end
+
+    if self._CurrentFrame >= 5 and self._Visual ~= nil then
+        self._CurrentFrame = 0
+        if self.Shape == "Sphere" then
+            self.Visual.Shape = Enum.PartType.Ball
+            self.Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
+        else
+            self.Visual.Shape = Enum.PartType.Block
+            self.Visual.Size = self.Size
+        end
+        
+        if self.CopyCFrame ~= nil then
+            self.Visual.CFrame = self.CopyCFrame.CFrame
+        elseif self.Position ~= nil then
+            if self.Orientation ~= nil then
+                self.Visual.CFrame = CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z))
+            else
+                self.Visual.Position = self.Position
+            end
+        end
+    end
+
+    if self.Pierce > 0 then
+        local result: {BasePart} = {}
+        if self.Shape == "Sphere" then
+            result = workspace:GetPartBoundsInRadius(self.Position, self.Radius, self.OverlapParams) or {}
+        elseif self.Shape == "Box" then
+            if typeof(self.Orientation) == "Vector3" then
+                result = workspace:GetPartBoundsInBox(CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z)), self.Size, self.OverlapParams) or {}
+            elseif typeof(self.CopyCFrame) == "Instance" then
+                if self.CopyCFrame:IsA("BasePart") then
+                    result = workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {} 
+                end
+            else
+                result = workspace:GetPartBoundsInBox(CFrame.new(self.Position), self.Size, self.OverlapParams) or {}
+            end
+        elseif self._CanWarn == true then
+            self._CanWarn = false
+            task.delay(5, function()
+                self._CanWarn = true
+            end)
+            warn(concatPrint("Hitbox " .. self.Serial .. " has an invalid shape."))
+        end
+        if #result > 0 then
+            local hitHumanoids: {humanoid: BasePart} = {}
+            local registeredHumanoids: {Humanoid} = {}
+
+            for _,v in ipairs(result) do
+                local hum = v.Parent:FindFirstChildOfClass("Humanoid")
+                if hum ~= nil then
+                    if v.Parent:FindFirstChildOfClass("ForceField") == nil and v.Parent:FindFirstChild("HitboxSerial" .. self.Serial) == nil and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+                        table.insert(hitHumanoids, {hum, v})
+                    end
+                end
+            end
+
+            for _,v in pairs(hitHumanoids) do
+                local canHit = true
+                for _,v2 in ipairs(registeredHumanoids) do
+                    if v[1] == v2 then
+                        canHit = false
+                        break
+                    end
+                end
+                if canHit == true then
+                    if self.Debounce > 0 then
+                        local newSerial: BoolValue = Instance.new("BoolValue")
+                        Debris:AddItem(newSerial, self.Debounce)
+                        newSerial.Name = "HitboxSerial" .. self.Serial
+                        newSerial.Value = true
+                        newSerial.Parent = v.Parent
+                    end
+                    self.Hit:Fire(v[1], v[2], {
+                        ["Position"] = self.Position,
+                        ["Radius"] = self.Radius or 0,
+                        ["Size"] = self.Size or Vector3.new(0, 0, 0)
+                    })
+                    table.insert(registeredHumanoids, v[1])
+                    self.Pierce -= 1
+                    if self.Pierce <= 0 then
+                        break
+                    end
+                end
+            end
+        end
+    end
+    if (self.LifeTime <= 0 and HitboxMode ~= "Bezier") or (HitboxMode == "Bezier" and self.Trajectory._Completion >= 1) then
+        self:Destroy()
+    end
+end
+
 -- Main Hitbox runner
 local function UpdateHitboxes(_, deltaTime: number): ()
-	for _,self in pairs(ActiveHitboxes) do
+	for _,self: HitboxType in pairs(ActiveHitboxes) do
 		if self.Active == true then
 			self._CurrentFrame += 1
 			self.LifeTime -= deltaTime
-			local HitboxMode = self:GetCurrentMode()
-			if HitboxMode == "Linear" then
-				self.Position += (self.Trajectory._DirectionalVector * (self:GetVelocity() * deltaTime))
-			elseif HitboxMode == "Bezier" then
-				local interpolationGain = (self:GetVelocity() * deltaTime) / self.Trajectory._Length
-				if interpolationGain > (1 - self.Trajectory._Completion) then
-					interpolationGain = (1 - self.Trajectory._Completion)
-				end
-				self.Trajectory._Completion += interpolationGain
-				self.BezierCompletion += interpolationGain
-				
-				if self.BezierMode == "Quadratic" then
-					self.Position = quadbez(self.StartPoint, self.ControlPoint1, self.EndPoint, self.Trajectory._Completion)
-				elseif self.BezierMode == "Cubic" then
-					self.Position = cubicbez(self.StartPoint, self.ControlPoint1, self.ControlPoint2, self.EndPoint, self.Trajectory._Completion)
-				end
-			elseif HitboxMode == "Attachment" then
-				self.Position = self.Attachment.WorldCFrame.Position
-			end
-
-			if self._CurrentFrame >= 5 and self._Visual ~= nil then
-				self._CurrentFrame = 0
-				if self.Shape == "Sphere" then
-					self.Visual.Shape = Enum.PartType.Ball
-					self.Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
-				else
-					self.Visual.Shape = Enum.PartType.Block
-					self.Visual.Size = self.Size
-				end
-				
-				if self.CopyCFrame ~= nil then
-					self.Visual.CFrame = self.CopyCFrame.CFrame
-				elseif self.Position ~= nil then
-					if self.Orientation ~= nil then
-						self.Visual.CFrame = CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z))
-					else
-						self.Visual.Position = self.Position
-					end
-				end
-			end
-
-			if self.Pierce > 0 then
-				local result: {BasePart} = {}
-				if self.Shape == "Sphere" then
-					result = workspace:GetPartBoundsInRadius(self.Position, self.Radius, self.OverlapParams) or {}
-				elseif self.Shape == "Box" then
-					if typeof(self.Orientation) == "Vector3" then
-						result = workspace:GetPartBoundsInBox(CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z)), self.Size, self.OverlapParams) or {}
-					elseif typeof(self.CopyCFrame) == "Instance" then
-                        if self.CopyCFrame:IsA("BasePart") then
-                            result = workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {} 
-                        end
-					else
-						result = workspace:GetPartBoundsInBox(CFrame.new(self.Position), self.Size, self.OverlapParams) or {}
-					end
-				elseif self._CanWarn == true then
-					self._CanWarn = false
-					task.delay(5, function()
-						self._CanWarn = true
-				    end)
-					warn(concatPrint("Hitbox " .. self.Serial .. " has an invalid shape."))
-				end
-				if #result > 0 then
-					local hitHumanoids: {humanoid: BasePart} = {}
-					local registeredHumanoids: {Humanoid} = {}
-
-					for _,v in ipairs(result) do
-						local hum = v.Parent:FindFirstChildOfClass("Humanoid")
-						if hum ~= nil then
-							if v.Parent:FindFirstChildOfClass("ForceField") == nil and v.Parent:FindFirstChild("HitboxSerial" .. self.Serial) == nil and hum:GetState() ~= Enum.HumanoidStateType.Dead then
-								table.insert(hitHumanoids, {hum, v})
-							end
-						end
-					end
-
-					for _,v in pairs(hitHumanoids) do
-						local canHit = true
-						for _,v2 in ipairs(registeredHumanoids) do
-							if v[1] == v2 then
-								canHit = false
-								break
-							end
-						end
-						if canHit == true then
-							if self.Debounce > 0 then
-								local newSerial: BoolValue = Instance.new("BoolValue")
-								Debris:AddItem(newSerial, self.Debounce)
-								newSerial.Name = "HitboxSerial" .. self.Serial
-								newSerial.Value = true
-								newSerial.Parent = v.Parent
-							end
-							self.Hit:Fire(v[1], v[2], {
-								["Position"] = self.Position,
-								["Radius"] = self.Radius or 0,
-								["Size"] = self.Size or Vector3.new(0, 0, 0)
-							})
-							table.insert(registeredHumanoids, v[1])
-							self.Pierce -= 1
-							if self.Pierce <= 0 then
-								break
-							end
-						end
-					end
-				end
-			end
-			if (self.LifeTime <= 0 and HitboxMode ~= "Bezier") or (HitboxMode == "Bezier" and self.Trajectory._Completion >= 1) then
-				self:Destroy()
-			end
+            if deltaTime < 1/30 then
+                HitReg(self, deltaTime)
+            else
+                local Factor = math.floor(deltaTime / (1/60))
+                for i = 1, Factor do
+                    HitReg(self, deltaTime / Factor)
+                end
+            end
 		end
 	end
 end
