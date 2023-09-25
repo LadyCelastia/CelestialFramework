@@ -117,6 +117,7 @@ export type HitboxType = {
 	Size: Vector3,
 }
 export type HitboxDataBundle = {
+    Serial: number,
 	Position: Vector3,
 	Radius: number,
 	Size: Vector3
@@ -338,6 +339,7 @@ local function HitReg(self: HitboxType, deltaTime: number): {BasePart}
                         newSerial.Parent = v.Parent
                     end
                     self.Hit:Fire(v[1], v[2], {
+                        ["Serial"] = self.Serial,
                         ["Position"] = self.Position,
                         ["Radius"] = self.Radius or 0,
                         ["Size"] = self.Size or Vector3.new(0, 0, 0)
@@ -867,7 +869,7 @@ function Hitbox:IsBackstab(Part: BasePart, Character: Model): boolean
 	return false
 end
 
-function Hitbox:GetEnum()
+function Hitbox:GetEnum(): {enumPair<string>}
     return setmetatable(enum, enumMetatable)
 end
 
