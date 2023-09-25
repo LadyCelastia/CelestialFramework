@@ -122,6 +122,12 @@ export type HitboxDataBundle = {
 	Radius: number,
 	Size: Vector3
 }
+export type MetatableType = {
+
+}
+export type ZoneType = {
+
+}
 
 --[[
     @define
@@ -133,6 +139,7 @@ local Debris = game:GetService("Debris")
 local DebugMode = true
 local HitboxSerial = 0
 local ActiveHitboxes = {}
+local ActiveZones = {}
 
 --[[
     @function
@@ -144,7 +151,6 @@ local function getStackLevel(): number
 		return 1
 	end
 	return 2
-
 end
 
 -- Concatenate string prefix for console output
@@ -248,6 +254,7 @@ end
 -- Spatial query main
 local function HitReg(self: HitboxType, deltaTime: number): {BasePart}
     local HitboxMode = self:GetCurrentMode()
+    local Velocity = self:GetVelocity()
     if HitboxMode == "Linear" then
         self.Position += (self.Trajectory._DirectionalVector * (self:GetVelocity() * deltaTime))
     elseif HitboxMode == "Bezier" then
@@ -258,9 +265,10 @@ local function HitReg(self: HitboxType, deltaTime: number): {BasePart}
         self.Trajectory._Completion += interpolationGain
         self.BezierCompletion += interpolationGain
         
-        if self.BezierMode == "Quadratic" then
+        local BezierMode = self.Trajectory:_GetBezierMode()
+        if BezierMode == "Quadratic" then
             self.Position = quadbez(self.StartPoint, self.ControlPoint1, self.EndPoint, self.Trajectory._Completion)
-        elseif self.BezierMode == "Cubic" then
+        elseif BezierMode == "Cubic" then
             self.Position = cubicbez(self.StartPoint, self.ControlPoint1, self.ControlPoint2, self.EndPoint, self.Trajectory._Completion)
         end
     elseif HitboxMode == "Attachment" then
@@ -270,20 +278,20 @@ local function HitReg(self: HitboxType, deltaTime: number): {BasePart}
     if self._CurrentFrame >= 5 and self._Visual ~= nil then
         self._CurrentFrame = 0
         if self.Shape == "Sphere" then
-            self.Visual.Shape = Enum.PartType.Ball
-            self.Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
+            self._Visual.Shape = Enum.PartType.Ball
+            self._Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
         else
-            self.Visual.Shape = Enum.PartType.Block
-            self.Visual.Size = self.Size
+            self._Visual.Shape = Enum.PartType.Block
+            self._Visual.Size = self.Size
         end
         
         if self.CopyCFrame ~= nil then
-            self.Visual.CFrame = self.CopyCFrame.CFrame
+            self._Visual.CFrame = self.CopyCFrame.CFrame
         elseif self.Position ~= nil then
             if self.Orientation ~= nil then
-                self.Visual.CFrame = CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z))
+                self._Visual.CFrame = CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z))
             else
-                self.Visual.Position = self.Position
+                self._Visual.Position = self.Position
             end
         end
     end
@@ -338,6 +346,7 @@ local function HitReg(self: HitboxType, deltaTime: number): {BasePart}
                         newSerial.Value = true
                         newSerial.Parent = v.Parent
                     end
+                    ---@diagnostic disable-next-line: redundant-parameter
                     self.Hit:Fire(v[1], v[2], {
                         ["Serial"] = self.Serial,
                         ["Position"] = self.Position,
@@ -422,9 +431,10 @@ end
 enum._new("StateEnum", {Active = "Active", Paused = "Paused", Dead = "Dead"})
 enum._new("ConstructionMode", {None = nil, Linear = "Linear", Bezier = "Bezier"})
 enum._new("BezierMode", {Quadratic = "Quad", Cubic = "Cubic"})
-enum._new("HitboxShape", {Box = "Box", Sphere = "Sphere"})
+enum._new("Shape", {Box = "Box", Sphere = "Sphere"})
 enum._new("HitboxMode", {None = "None", Attachment = "Attachment", Linear = "Linear", Bezier = "Bezier", Orientation = "Orientation", Copying = "Copy"})
-
+enum._new("CharacterResolution", {OnePart = "OnePart", Root = "Root", Head = "Head", FullBody = "FullBody"})
+enum._new("QueryType", {Bounds = "Bounds", Full = "Full"})
 
 --[[
     @class ScriptConnection
@@ -678,14 +688,13 @@ function Trajectory:Destroy(): ()
 end
 
 --[[
-    @main
     @class Hitbox
     @parent enum, ScriptSignal, Trajectory
     Hitbox class
 --]]
 local Hitbox = {}
 Hitbox.__index = Hitbox
-Hitbox.ShapeEnum = enum._get("HitboxShape")
+Hitbox.ShapeEnum = enum._get("Shape")
 Hitbox.ModeEnum = enum._get("HitboxMode")
 Hitbox.StateEnum = enum._get("StateEnum")
 
@@ -704,7 +713,7 @@ Hitbox.new = function(Fields: {Pair<string, any>}): HitboxType
     self.Hit = Signal.new()
 	self.Trajectory = Trajectory.new()
 	self.Serial = HitboxSerial
-	self.Shape = Fields["Shape"] or enum.HitboxShape.Box
+	self.Shape = Fields["Shape"] or enum.Shape.Box
 	self.Position = Fields["Position"] or Vector3.new(0, 0, 0)
 	self.Pierce = Fields["Pierce"] or 1
 	self.Debounce = Fields["Debounce"] or 5
@@ -742,7 +751,7 @@ function Hitbox:Visualize(): BasePart?
 	self._Visual.Material = Enum.Material.SmoothPlastic
 	self._Visual.Position = self.Position or Vector3.new(0, 0, 0)
 	
-	if self.Shape == enum.HitboxShape.Sphere then
+	if self.Shape == enum.Shape.Sphere then
 	    self._Visual.Shape = Enum.PartType.Ball
 		self._Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
 	else
@@ -869,10 +878,6 @@ function Hitbox:IsBackstab(Part: BasePart, Character: Model): boolean
 	return false
 end
 
-function Hitbox:GetEnum(): {enumPair<string>}
-    return setmetatable(enum, enumMetatable)
-end
-
 function Hitbox:Destroy(): ()
 	self:Deactivate()
 	self.Hit:DisconnectAll()
@@ -885,4 +890,198 @@ end
 
 RunService.Stepped:Connect(UpdateHitboxes)
 
-return Hitbox
+--[[
+    @class Metatable
+    Child of Zone. Additional metatable functionalities
+--]]
+local Metatable = {}
+Metatable.__index = Metatable
+
+Metatable.new = function(): MetatableType
+    local self = setmetatable({}, Metatable)
+    self.Members = {}
+    self._State = enum.StateEnum.Active
+    return self
+end
+
+function Metatable:_Add(Value: Instance, Functions: {Pair<string, ()>}): ()
+    local Connections: RBXScriptConnection = {}
+    for i,v in pairs(Functions) do
+        if typeof(Value[i]) == "RBXScriptSignal" and typeof(v) == "function" then
+            Connections[i] = Value[i]:Connect(v)
+        end
+    end
+    table.insert(self.Members, {Instance = Value, Connections = Connections})
+end
+
+function Metatable:_CleanUp(): ()
+    local CullingList = {}
+    for i,v in ipairs(self.Members) do
+        if v.Instance == nil or #v.Connections < 1 then
+            for _,v2 in pairs(v.Connections) do
+                if typeof(v2) == "RBXScriptConnection" then
+                    v2:Disconnect()
+                end
+            end
+            table.insert(CullingList, i)
+        end
+    end
+    CullTable(self.Members, CullingList)
+end
+
+function Metatable:_Remove(Value: Instance): ()
+    local CullingList = {}
+    for i,v in ipairs(self.Members) do
+        if v.Instance == nil or v.Instance == Value then
+            for _,v2 in pairs(v.Connections) do
+                if typeof(v2) == "RBXScriptConnection" then
+                    v2:Disconnect()
+                end
+            end
+            table.insert(CullingList, i)
+        end
+    end
+    CullTable(self.Members, CullingList)
+end
+
+function Metatable:_IsMember(Value: Instance): boolean
+    for _,v in ipairs(self.Members) do
+        if v.Instance == Value then
+            return true
+        end
+    end
+    return false
+end
+
+function Metatable:_GetMembers(): {BasePart}
+    local MemberList = {}
+    for _,v in ipairs(self.Members) do
+        if typeof(v.Instance) == "Instance" then
+            table.insert(MemberList, v.Instance)
+        end
+    end
+    return MemberList
+end
+
+function Metatable:Destroy(): ()
+    for _,v in ipairs(self.Members) do
+        for _,v2 in pairs(v.Connections) do
+            if typeof(v2) == "RBXScriptConnection" then
+                v2:Disconnect()
+            end
+        end
+    end
+    self = {_State = enum.StateEnum.Dead}
+end
+
+--[[
+    @class Zone
+    @parent enum, ScriptSignal
+    Static counterpart of Hitbox with a different set of functionalities
+--]]
+
+local Zone = {}
+Zone.__index = Zone
+
+Zone.new = function(Fields: {Pair<string, any>}): ZoneType
+    Fields = Fields or {}
+	HitboxSerial += 1
+    local self = setmetatable({}, Zone)
+
+    -- Private variables
+	self._CurrentFrame = 0
+	self._CanWarn = true
+	self._Visual = nil
+    self._CharactersInside = {}
+    self._PlayersInside = {}
+    self._PartsInside = {}
+
+    -- Public variables
+    self.CharacterEntered = Signal.new()
+    self.CharacterLeft = Signal.new()
+    self.PlayerEntered = Signal.new()
+    self.PlayerLeft = Signal.new()
+    self.PartEntered = Signal.new()
+    self.PartLeft = Signal.new()
+
+    self.Serial = HitboxSerial
+    self.Shape = Fields["Shape"] or enum.Shape.Box
+	self.Position = Fields["Position"] or Vector3.new(0, 0, 0)
+	self.Pierce = Fields["Pierce"] or 1
+	self.Debounce = Fields["Debounce"] or 5
+	self.LifeTime = Fields["LifeTime"] or 1
+	self.Orientation = Fields["Orientation"]
+    self.CharacterResolution = Fields["CharacterResolution"] or enum.CharacterResolution.FullBody
+    self.QueryType = Fields["QueryType"] or enum.QueryType.Bounds
+    self.Rate = Fields["Rate"] or 10 -- How many checks per second
+    self.OverlapParams = OverlapParams.new()
+	self.OverlapParams.FilterType = Enum.RaycastFilterType.Exclude
+	self.OverlapParams.FilterDescendantsInstances = {}
+	self.OverlapParams.RespectCanCollide = false
+	self.OverlapParams.MaxParts = 0
+    self.MemberParts = {}
+	self.Active = Fields["Active"] or false
+    if self.Active == true then
+        self.State = enum.StateEnum.Active
+    else
+        self.State = enum.StateEnum.Paused
+    end
+
+	self.Radius = Fields["Radius"] or 3 -- Used for Sphere shape
+	self.Size = Fields["Size"] or Vector3.new(3, 3, 3) -- Used for Box shape
+
+    ActiveZones[self.Serial] = self
+
+    return self
+end
+
+function Zone:AddMember(part: BasePart): ()
+    for _,v in ipairs(self.MemberParts) do
+        if v == part then
+            return
+        end
+    end
+    table.insert(self.MemberParts, part)
+    -- Todo: Update zone boundaries
+end
+
+function Zone:RemoveMember(part: BasePart): ()
+    for _,v in ipairs(self.MemberParts) do
+        
+    end
+end
+
+function Zone:Destroy(): ()
+    self.CharacterEntered:Destroy()
+    self.CharacterLeft:Destroy()
+    self.PlayerEntered:Destroy()
+    self.PlayerLeft:Destroy()
+    self.PartEntered:Destroy()
+    self.PartLeft:Destroy()
+end
+
+--[[
+    @main
+    @class Module
+    Instantiation handler
+--]]
+
+local Module = {}
+
+Module.newHitbox = function(...): HitboxType -- Can be ran on both client and server
+    return Hitbox.new(...)
+end
+
+Module.newZone = function(...): ZoneType -- Can be ran on both client and server, but methods are different
+    return Zone.new(...)
+end
+
+Module.newEnum = function(): {enumPair<string>} -- Can be ran on both client and server
+    return setmetatable(enum, enumMetatable)
+end
+
+Module.newSignal = function(): ScriptSignal -- Can be ran on both client and server
+    return Signal.new()
+end
+
+return Module
