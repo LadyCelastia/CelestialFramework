@@ -16,6 +16,7 @@ type BezierPoints = {
 	Control2: Vector3 | nil,
 	End: Vector3
 }
+type LerpValue = Vector3 | Vector2 | CFrame | number | UDim2 | UDim | Color3
 export type ScriptConnection = {
 	_Connected: boolean,
 	_Signal: ScriptSignal,
@@ -63,7 +64,7 @@ export type TrajectoryType = {
 	_DirectionalVector: Vector3 | nil,
 	_Length: number,
 	_Completion: number,
-	_Points: Pairs<string, Vector3>,
+	_Points: Pair<string, Vector3>,
 	_GetBezierMode: () -> (string),
 
 	new: (Pair<string, any>) -> (TrajectoryType),
@@ -76,7 +77,7 @@ export type TrajectoryType = {
 	Velocity: number
 }
 export type HitboxType = {
-	_Attachment: attachment | nil,
+	_Attachment: Attachment | nil,
 	_CurrentFrame: number,
 	_CanWarn: boolean,
 	_Visual: BasePart | nil,
@@ -297,8 +298,10 @@ local function UpdateHitboxes(_, deltaTime: number): ()
 				elseif self.Shape == "Box" then
 					if typeof(self.Orientation) == "Vector3" then
 						result = workspace:GetPartBoundsInBox(CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z)), self.Size, self.OverlapParams) or {}
-					elseif typeof(self.CopyCFrame) == "BasePart" then
-						result = workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {}
+					elseif typeof(self.CopyCFrame) == "Instance" then
+                        if self.CopyCFrame:IsA("BasePart") then
+                            result = workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {} 
+                        end
 					else
 						result = workspace:GetPartBoundsInBox(CFrame.new(self.Position), self.Size, self.OverlapParams) or {}
 					end
