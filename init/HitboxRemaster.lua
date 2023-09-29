@@ -1,6 +1,6 @@
 --[[
 	LadyCelestia 9/23/2023
-	A complete overhaul of HitboxMaster. Type-safe.
+	A complete overhaul of HitboxMaster. Type-safe with generic and lambda support.
 --]]
 
 --[[
@@ -50,7 +50,7 @@ export type ScriptSignal = {
 
 	new: () -> (ScriptSignal),
 	StateEnum: {enumPair<string>},
-	Connect: (func: (any), connectImmediately: boolean?) -> (ScriptConnection),
+	Connect: (func: (any) -> (any), connectImmediately: boolean?) -> (ScriptConnection),
 	DisconnectAll: () -> (),
 	DisconnectOne: (identifier: string) -> (),
 	Once: (func: (any)) -> (ScriptConnection),
@@ -97,8 +97,8 @@ export type HitboxType = {
 	ShapeEnum: enumPair<string>,
 	ModeEnum: enumPair<string>,
 	StateEnum: enumPair<string>,
-    ConstructionEnum: enumPair<string>,
-    BezierEnum: enumPair<string>,
+	ConstructionEnum: enumPair<string>,
+	BezierEnum: enumPair<string>,
 	Hit: ScriptSignal,
 	Trajectory: TrajectoryType,
 	Serial: number,
@@ -115,84 +115,84 @@ export type HitboxType = {
 	Size: Vector3,
 }
 export type HitboxDataBundle = {
-    Serial: number,
+	Serial: number,
 	Position: Vector3,
 	Radius: number,
 	Size: Vector3
 }
 export type MetatableType = {
-    _Members: {
-        Instance: Instance,
-        Connections: {Pair<string, RBXScriptConnection>}
-    },
-    _State: string,
-    _CleanUp: () -> (),
-    _Add: (Value: Instance, Metafunctions: Pair<string, (any)>?) -> (),
-    _Remove: (Value: Instance, Metafunctions: Instance) -> (),
-    _AddMetafunction: (Value: Instance, Metafunctions: Pair<string, (any)>) -> (),
-    _RemoveMetafunction: (Value: Instance, Metafunctions: {string}) -> (),
-    _IsMember: (Value: Instance) -> (boolean),
-    _GetMembers: () -> ({BasePart}),
+	_Members: {
+		Instance: Instance,
+		Connections: {Pair<string, RBXScriptConnection>}
+	},
+	_State: string,
+	_CleanUp: () -> (),
+	_Add: (Value: Instance, Metafunctions: Pair<string, (any)>?) -> (),
+	_Remove: (Value: Instance, Metafunctions: Instance) -> (),
+	_AddMetafunction: (Value: Instance, Metafunctions: Pair<string, (any)>) -> (),
+	_RemoveMetafunction: (Value: Instance, Metafunctions: {string}) -> (),
+	_IsMember: (Value: Instance) -> (boolean),
+	_GetMembers: () -> ({BasePart}),
 
-    new: (Members: {any}?) -> (MetatableType),
-    Destroy: () -> ()
+	new: (Members: {any}?) -> (MetatableType),
+	Destroy: () -> ()
 }
 export type ZoneComponentType = {
-    _Part: BasePart?,
-    _State: string,
-    _NewPart: () -> (),
+	_Part: BasePart?,
+	_State: string,
+	_NewPart: () -> (),
 
-    new: (Fields: Pair<string, any>?) -> (ZoneComponentType),
-    Shape: string,
-    CFrame: CFrame,
-    Size: Vector3,
-    Query: (QueryType: string, Params: OverlapParams) -> (BasePart),
-    GetCharacters: (CharacterResolution: string, QueryType: string, Params: OverlapParams) -> ({Model}),
-    GetPlayers: (CharacterResolution: string, QueryType: string, Params: OverlapParams) -> ((Model)),
-    Destroy: () -> ()
+	new: (Fields: Pair<string, any>?) -> (ZoneComponentType),
+	Shape: string,
+	CFrame: CFrame,
+	Size: Vector3,
+	Query: (QueryType: string, Params: OverlapParams) -> (BasePart),
+	GetCharacters: (CharacterResolution: string, QueryType: string, Params: OverlapParams) -> ({Model}),
+	GetPlayers: (CharacterResolution: string, QueryType: string, Params: OverlapParams) -> ((Model)),
+	Destroy: () -> ()
 }
 export type ZoneType = {
-    _CurrentFrame: number,
-    _CanWarn: boolean,
-    _Visual: BasePart?,
-    _MemberParts: MetatableType,
-    _MemberComponents: Pair<BasePart | number, ZoneComponentType>,
-    _PartsInside: {BasePart},
-    _CharactersInside: {Model},
-    _PlayersInside: {Model},
+	_CurrentFrame: number,
+	_CanWarn: boolean,
+	_Visual: BasePart?,
+	_MemberParts: MetatableType,
+	_MemberComponents: Pair<BasePart | number, ZoneComponentType>,
+	_PartsInside: {BasePart},
+	_CharactersInside: {Model},
+	_PlayersInside: {Model},
 
-    new: (Fields: Pair<string, any>) -> (ZoneType),
-    CharacterResolutionEnum: enumPair<string>,
-    QueryTypeEnum: enumPair<string>,
-    StateEnum: enumPair<string>,
-    CharacterEntered: ScriptSignal,
-    CharacterLeft: ScriptSignal,
-    PlayerEntered: ScriptSignal,
-    PlayerLeft: ScriptSignal,
-    PartEntered: ScriptSignal,
-    PartLeft: ScriptSignal,
-    Serial: number,
-    Shape: string,
-    CharacterResolution: string,
-    QueryType: string,
-    Rate: number,
-    OverlapParams: OverlapParams,
-    Active: boolean,
-    Update: () -> (),
-    Relocate: (newCFrame: CFrame) -> (),
-    AddMember: (part: BasePart, Metafunctions: Pair<string, (any)>?) -> (),
-    RemoveMember: (part: BasePart) -> (),
-    AddComponent: (Component: ZoneComponentType) -> (number?),
-    RemoveComponent: (index: BasePart | number) -> (),
-    IsPartInside: (part: BasePart) -> (boolean),
-    IsCharacterInside: (Character: Model) -> (boolean),
-    IsPlayerInside: (Character: Model) -> (boolean),
-    GetPartsInside: () -> ({BasePart}),
-    GetCharactersInside: (PartList: {BasePart}?) -> ({Model}),
-    GetPlayersInside: (PartList: {BasePart}?) -> ({Model}),
-    Activate: () -> (),
-    Deactivate: () -> (),
-    Destroy: () -> ()
+	new: (Fields: Pair<string, any>) -> (ZoneType),
+	CharacterResolutionEnum: enumPair<string>,
+	QueryTypeEnum: enumPair<string>,
+	StateEnum: enumPair<string>,
+	CharacterEntered: ScriptSignal,
+	CharacterLeft: ScriptSignal,
+	PlayerEntered: ScriptSignal,
+	PlayerLeft: ScriptSignal,
+	PartEntered: ScriptSignal,
+	PartLeft: ScriptSignal,
+	Serial: number,
+	Shape: string,
+	CharacterResolution: string,
+	QueryType: string,
+	Rate: number,
+	OverlapParams: OverlapParams,
+	Active: boolean,
+	Update: () -> (),
+	Relocate: (newCFrame: CFrame) -> (),
+	AddMember: (part: BasePart, Metafunctions: Pair<string, (any)>?) -> (),
+	RemoveMember: (part: BasePart) -> (),
+	AddComponent: (Component: ZoneComponentType) -> (number?),
+	RemoveComponent: (index: BasePart | number) -> (),
+	IsPartInside: (part: BasePart) -> (boolean),
+	IsCharacterInside: (Character: Model) -> (boolean),
+	IsPlayerInside: (Character: Model) -> (boolean),
+	GetPartsInside: () -> ({BasePart}),
+	GetCharactersInside: (PartList: {BasePart}?) -> ({Model}),
+	GetPlayersInside: (PartList: {BasePart}?) -> ({Model}),
+	Activate: () -> (),
+	Deactivate: () -> (),
+	Destroy: () -> ()
 }
 
 --[[
@@ -224,310 +224,310 @@ end
 
 -- Concatenate string prefix for console output
 local function concatPrint(String: string): string
-    return "[" .. script.Name .. "]: " .. String
+	return "[" .. script.Name .. "]: " .. String
 end
 
 -- Find an index/value or index-value pair in Table and all its children tables
 local function DeepFind(Table: {any}, Row: {any}): {any}?
-    if #Row ~= 1 then
-        error(concatPrint("Row argument of function DeepFind may only have one key-value pair."), getStackLevel())
-    end
-    for i,v in pairs(Table) do
-        if typeof(v) ~= "table" then
-            if Row[i] ~= nil then
-                return {i = v}
-            else
-                for _,v2 in pairs(Row) do
-                    if v == v2 then
-                        return {i = v}
-                    end
-                end
-            end
-        else
-            local RecursiveResult = DeepFind(v, Row)
-            if RecursiveResult ~= nil then
-                return RecursiveResult
-            end
-        end
-    end
-    return nil
+	if #Row ~= 1 then
+		error(concatPrint("Row argument of function DeepFind may only have one key-value pair."), getStackLevel())
+	end
+	for i,v in pairs(Table) do
+		if typeof(v) ~= "table" then
+			if Row[i] ~= nil then
+				return {i = v}
+			else
+				for _,v2 in pairs(Row) do
+					if v == v2 then
+						return {i = v}
+					end
+				end
+			end
+		else
+			local RecursiveResult = DeepFind(v, Row)
+			if RecursiveResult ~= nil then
+				return RecursiveResult
+			end
+		end
+	end
+	return nil
 end
 
 -- table.remove en mass
 local function CullTable(TableToCull: Pair<any, any>, CullingList: Pair<number, any>): Pair<any, any>
-    for i = 1, #TableToCull do
-        local target = CullingList[i]
-        if TableToCull[target] then
-            table.remove(TableToCull, target)
-            for i2, v in ipairs(CullingList) do
-                if v > target then
-                    CullingList[i2] -= 1
-                end
-            end
-        end
-    end
-    return TableToCull
+	for i = 1, #TableToCull do
+		local target = CullingList[i]
+		if TableToCull[target] then
+			table.remove(TableToCull, target)
+			for i2, v in ipairs(CullingList) do
+				if v > target then
+					CullingList[i2] -= 1
+				end
+			end
+		end
+	end
+	return TableToCull
 end
 
 -- Find the highest numeral index in an any-pair table
 local function FindHighestIndex(Table: {any}): number
-    local HighestIndex = 0
-    for i,_ in pairs(Table) do
-        if typeof(i) == "number" and i > HighestIndex then
-            HighestIndex = i
-        end
-    end
-    return HighestIndex
+	local HighestIndex = 0
+	for i,_ in pairs(Table) do
+		if typeof(i) == "number" and i > HighestIndex then
+			HighestIndex = i
+		end
+	end
+	return HighestIndex
 end
 
 -- Compare the values of two any-pair tables, return an ipair table of exclusive values
 local function CompareTableValues(Table1: {any}, Table2: {any}): {any} & {any}
-    local Table1Exclusives = {}
-    for _,v in pairs(Table1) do
-        local IsInTable = false
-        for _,v2 in pairs(Table2) do
-            if v == v2 then
-                IsInTable = true
-                break
-            end
-        end
-        if IsInTable == false then
-            Table1Exclusives[v] = true
-        end
-    end
-    local Table2Exclusives = {}
-    for _,v in pairs(Table2) do
-        if Table1Exclusives[v] == nil then
-            local IsInTable = false
-            for _,v2 in pairs(Table2) do
-                if v == v2 then
-                    IsInTable = true
-                    break
-                end
-            end
-            if IsInTable == false then
-                Table2Exclusives[v] = true
-            end
-        end
-    end
-    local ReturnTable1 = {}
-    for i,_ in pairs(Table1Exclusives) do
-        table.insert(ReturnTable1, i)
-    end
-    local ReturnTable2 = {}
-    for i,_ in pairs(Table2Exclusives) do
-        table.insert(ReturnTable2, i)
-    end
-    return ReturnTable1, ReturnTable2
+	local Table1Exclusives = {}
+	for _,v in pairs(Table1) do
+		local IsInTable = false
+		for _,v2 in pairs(Table2) do
+			if v == v2 then
+				IsInTable = true
+				break
+			end
+		end
+		if IsInTable == false then
+			Table1Exclusives[v] = true
+		end
+	end
+	local Table2Exclusives = {}
+	for _,v in pairs(Table2) do
+		if Table1Exclusives[v] == nil then
+			local IsInTable = false
+			for _,v2 in pairs(Table2) do
+				if v == v2 then
+					IsInTable = true
+					break
+				end
+			end
+			if IsInTable == false then
+				Table2Exclusives[v] = true
+			end
+		end
+	end
+	local ReturnTable1 = {}
+	for i,_ in pairs(Table1Exclusives) do
+		table.insert(ReturnTable1, i)
+	end
+	local ReturnTable2 = {}
+	for i,_ in pairs(Table2Exclusives) do
+		table.insert(ReturnTable2, i)
+	end
+	return ReturnTable1, ReturnTable2
 end
 
 -- Check if method/variable is private
 local function IsPrivate(String: string): boolean
-    if string.match(String, "_%a+") ~= nil then
-        return true
-    end
-    return false
+	if string.match(String, "_%a+") ~= nil then
+		return true
+	end
+	return false
 end
 
 -- Factorized quadratic bezier equation
 local function quadbez(a: LerpValue, b: LerpValue, c:LerpValue, t: number): LerpValue
-    return (1 - t)^2*a + 2*(1 - t)*t*b + t^2*c
+	return (1 - t)^2*a + 2*(1 - t)*t*b + t^2*c
 end
 
 -- Factorized cubic bezier equation
 local function cubicbez(a: LerpValue, b: LerpValue, c: LerpValue, d: LerpValue, t: number): LerpValue
-    return (1 - t)^3*a + 3*(1 - t)^2*t*b + 3*(1 - t)*t^2*c + t^3+d
+	return (1 - t)^3*a + 3*(1 - t)^2*t*b + 3*(1 - t)*t^2*c + t^3+d
 end
 
 -- Return the combined length of segments
 local function seglen(segments: {Vector3}): number
-    local length = 0
-    for i = 1, #segments do
-        local current, next = segments[i], segments[i + 1]
-        if not next then
-            continue
-        end
-        length += (current - next).Magnitude
-    end
-    return length
+	local length = 0
+	for i = 1, #segments do
+		local current, next = segments[i], segments[i + 1]
+		if not next then
+			continue
+		end
+		length += (current - next).Magnitude
+	end
+	return length
 end
 
 -- Return a rough estimated total length of a quadratic bezier curve
 local function quadbezlen(startPoint: Vector3, controlPoint: Vector3, endPoint: Vector3, resolution: number?): number
-    resolution = resolution or 10
-    local segments = {}
-    for i = 1, resolution do
-        table.insert(segments, quadbez(startPoint, controlPoint, endPoint, i/resolution))
-    end
-    return seglen(segments)
+	resolution = resolution or 10
+	local segments = {}
+	for i = 1, resolution do
+		table.insert(segments, quadbez(startPoint, controlPoint, endPoint, i/resolution))
+	end
+	return seglen(segments)
 end
 
 -- Return a rough estimated total length of a cubic bezier curve
 local function cubicbezlen(startPoint: Vector3, controlPoint1: Vector3, controlPoint2: Vector3, endPoint: Vector3, resolution: number?): number
-    resolution = resolution or 10
-    local segments = {}
-    for i = 1, resolution do
-        table.insert(segments, cubicbez(startPoint, controlPoint1, controlPoint2, endPoint, i/resolution))
-    end
-    return seglen(segments)
+	resolution = resolution or 10
+	local segments = {}
+	for i = 1, resolution do
+		table.insert(segments, cubicbez(startPoint, controlPoint1, controlPoint2, endPoint, i/resolution))
+	end
+	return seglen(segments)
 end
 
 -- ZoneComponent character query validation
 local function CharacterQuerySearch(CharacterList: {Pair<Model, {Pair<BasePart, boolean>}>}, CharacterResolution: string): {Model}
-    local ValidCharacterList = {}
-    for i,v in pairs(CharacterList) do
-        local valid = false
-        if CharacterResolution == "FullBody" then
-            valid = true
-            for _,v2 in pairs(v) do
-                if v2 == false then
-                    valid = false
-                    break
-                end
-            end
-        elseif CharacterResolution == "Root" then
-            for i2,v2 in pairs(v) do
-                if i2.Name == "HumanoidRootPart" and v2 == true then
-                    valid = true
-                    break
-                end
-            end
-        elseif CharacterResolution == "Head" then
-            for i2,v2 in pairs(v) do
-                if i2.Name == "Head" and v2 == true then
-                    valid = true
-                    break
-                end
-            end
-        else
-            for _,v2 in pairs(v) do
-                if v2 == true then
-                    valid = true
-                    break
-                end
-            end
-        end
-        if valid == true then
-            table.insert(ValidCharacterList, i)
-        end
-    end
-    return ValidCharacterList
+	local ValidCharacterList = {}
+	for i,v in pairs(CharacterList) do
+		local valid = false
+		if CharacterResolution == "FullBody" then
+			valid = true
+			for _,v2 in pairs(v) do
+				if v2 == false then
+					valid = false
+					break
+				end
+			end
+		elseif CharacterResolution == "Root" then
+			for i2,v2 in pairs(v) do
+				if i2.Name == "HumanoidRootPart" and v2 == true then
+					valid = true
+					break
+				end
+			end
+		elseif CharacterResolution == "Head" then
+			for i2,v2 in pairs(v) do
+				if i2.Name == "Head" and v2 == true then
+					valid = true
+					break
+				end
+			end
+		else
+			for _,v2 in pairs(v) do
+				if v2 == true then
+					valid = true
+					break
+				end
+			end
+		end
+		if valid == true then
+			table.insert(ValidCharacterList, i)
+		end
+	end
+	return ValidCharacterList
 end
 
 -- Hitbox spatial query main
 local function HitReg(self: HitboxType, deltaTime: number): {BasePart}
-    local HitboxMode = self:GetCurrentMode()
-    local Velocity = self:GetVelocity()
-    if HitboxMode == "Linear" then
-        self.Position += (self.Trajectory._DirectionalVector * (Velocity * deltaTime))
-    elseif HitboxMode == "Bezier" then
-        local interpolationGain = (Velocity * deltaTime) / self.Trajectory._Length
-        if interpolationGain > (1 - self.Trajectory._Completion) then
-            interpolationGain = (1 - self.Trajectory._Completion)
-        end
-        self.Trajectory._Completion += interpolationGain
-        self.BezierCompletion += interpolationGain
-        
-        local BezierMode = self.Trajectory:_GetBezierMode()
-        if BezierMode == "Quadratic" then
-            self.Position = quadbez(self.StartPoint, self.ControlPoint1, self.EndPoint, self.Trajectory._Completion)
-        elseif BezierMode == "Cubic" then
-            self.Position = cubicbez(self.StartPoint, self.ControlPoint1, self.ControlPoint2, self.EndPoint, self.Trajectory._Completion)
-        end
-    elseif HitboxMode == "Attachment" then
-        self.Position = self.Attachment.WorldCFrame.Position
-    end
+	local HitboxMode = self:GetCurrentMode()
+	local Velocity = self:GetVelocity()
+	if HitboxMode == "Linear" then
+		self.Position += (self.Trajectory._DirectionalVector * (Velocity * deltaTime))
+	elseif HitboxMode == "Bezier" then
+		local interpolationGain = (Velocity * deltaTime) / self.Trajectory._Length
+		if interpolationGain > (1 - self.Trajectory._Completion) then
+			interpolationGain = (1 - self.Trajectory._Completion)
+		end
+		self.Trajectory._Completion += interpolationGain
+		self.BezierCompletion += interpolationGain
 
-    if self._CurrentFrame >= 5 and self._Visual ~= nil then
-        self._CurrentFrame = 0
-        if self.Shape == "Sphere" then
-            self._Visual.Shape = Enum.PartType.Ball
-            self._Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
-        else
-            self._Visual.Shape = Enum.PartType.Block
-            self._Visual.Size = self.Size
-        end
-        
-        if self.CopyCFrame ~= nil then
-            self._Visual.CFrame = self.CopyCFrame.CFrame
-        elseif self.Position ~= nil then
-            if self.Orientation ~= nil then
-                self._Visual.CFrame = CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z))
-            else
-                self._Visual.Position = self.Position
-            end
-        end
-    end
+		local BezierMode = self.Trajectory:_GetBezierMode()
+		if BezierMode == "Quadratic" then
+			self.Position = quadbez(self.StartPoint, self.ControlPoint1, self.EndPoint, self.Trajectory._Completion)
+		elseif BezierMode == "Cubic" then
+			self.Position = cubicbez(self.StartPoint, self.ControlPoint1, self.ControlPoint2, self.EndPoint, self.Trajectory._Completion)
+		end
+	elseif HitboxMode == "Attachment" then
+		self.Position = self._Attachment.WorldCFrame.Position
+	end
 
-    if self.Pierce > 0 then
-        local result: {BasePart} = {}
-        if self.Shape == "Sphere" then
-            result = workspace:GetPartBoundsInRadius(self.Position, self.Radius, self.OverlapParams) or {}
-        elseif self.Shape == "Box" then
-            if typeof(self.Orientation) == "Vector3" then
-                result = workspace:GetPartBoundsInBox(CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z)), self.Size, self.OverlapParams) or {}
-            elseif typeof(self.CopyCFrame) == "Instance" then
-                if self.CopyCFrame:IsA("BasePart") then
-                    result = workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {} 
-                end
-            else
-                result = workspace:GetPartBoundsInBox(CFrame.new(self.Position), self.Size, self.OverlapParams) or {}
-            end
-        elseif self._CanWarn == true then
-            self._CanWarn = false
-            task.delay(5, function()
-                self._CanWarn = true
-            end)
-            warn(concatPrint("Hitbox " .. self.Serial .. " has an invalid shape."))
-        end
-        if #result > 0 then
-            local hitHumanoids: {humanoid: BasePart} = {}
-            local registeredHumanoids: {Humanoid} = {}
+	if self._CurrentFrame >= 5 and self._Visual ~= nil then
+		self._CurrentFrame = 0
+		if self.Shape == "Sphere" then
+			self._Visual.Shape = Enum.PartType.Ball
+			self._Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
+		else
+			self._Visual.Shape = Enum.PartType.Block
+			self._Visual.Size = self.Size
+		end
 
-            for _,v in ipairs(result) do
-                local hum = v.Parent:FindFirstChildOfClass("Humanoid")
-                if hum ~= nil then
-                    if v.Parent:FindFirstChildOfClass("ForceField") == nil and v.Parent:FindFirstChild("HitboxSerial" .. self.Serial) == nil and hum:GetState() ~= Enum.HumanoidStateType.Dead then
-                        table.insert(hitHumanoids, {hum, v})
-                    end
-                end
-            end
+		if self.CopyCFrame ~= nil then
+			self._Visual.CFrame = self.CopyCFrame.CFrame
+		elseif self.Position ~= nil then
+			if self.Orientation ~= nil then
+				self._Visual.CFrame = CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z))
+			else
+				self._Visual.Position = self.Position
+			end
+		end
+	end
 
-            for _,v in pairs(hitHumanoids) do
-                local canHit = true
-                for _,v2 in ipairs(registeredHumanoids) do
-                    if v[1] == v2 then
-                        canHit = false
-                        break
-                    end
-                end
-                if canHit == true then
-                    if self.Debounce > 0 then
-                        local newSerial: BoolValue = Instance.new("BoolValue")
-                        Debris:AddItem(newSerial, self.Debounce)
-                        newSerial.Name = "HitboxSerial" .. self.Serial
-                        newSerial.Value = true
-                        newSerial.Parent = v.Parent
-                    end
-                    ---@diagnostic disable-next-line: redundant-parameter
-                    self.Hit:Fire(v[1], v[2], {
-                        ["Serial"] = self.Serial,
-                        ["Position"] = self.Position,
-                        ["Radius"] = self.Radius or 0,
-                        ["Size"] = self.Size or Vector3.new(0, 0, 0)
-                    })
-                    table.insert(registeredHumanoids, v[1])
-                    self.Pierce -= 1
-                    if self.Pierce <= 0 then
-                        break
-                    end
-                end
-            end
-        end
-    end
-    if (self.LifeTime <= 0 and HitboxMode ~= "Bezier") or (HitboxMode == "Bezier" and self.Trajectory._Completion >= 1) then
-        self:Destroy()
-    end
+	if self.Pierce > 0 then
+		local result: {BasePart} = {}
+		if self.Shape == "Sphere" then
+			result = workspace:GetPartBoundsInRadius(self.Position, self.Radius, self.OverlapParams) or {}
+		elseif self.Shape == "Box" then
+			if typeof(self.Orientation) == "Vector3" then
+				result = workspace:GetPartBoundsInBox(CFrame.new(self.Position) * CFrame.Angles(math.rad(self.Orientation.X), math.rad(self.Orientation.Y), math.rad(self.Orientation.Z)), self.Size, self.OverlapParams) or {}
+			elseif typeof(self.CopyCFrame) == "Instance" then
+				if self.CopyCFrame:IsA("BasePart") then
+					result = workspace:GetPartBoundsInBox(self.CopyCFrame.CFrame, self.Size, self.OverlapParams) or {} 
+				end
+			else
+				result = workspace:GetPartBoundsInBox(CFrame.new(self.Position), self.Size, self.OverlapParams) or {}
+			end
+		elseif self._CanWarn == true then
+			self._CanWarn = false
+			task.delay(5, function()
+				self._CanWarn = true
+			end)
+			warn(concatPrint("Hitbox " .. self.Serial .. " has an invalid shape."))
+		end
+		if #result > 0 then
+			local hitHumanoids: {humanoid: BasePart} = {}
+			local registeredHumanoids: {Humanoid} = {}
+
+			for _,v in ipairs(result) do
+				local hum = v.Parent:FindFirstChildOfClass("Humanoid")
+				if hum ~= nil then
+					if v.Parent:FindFirstChildOfClass("ForceField") == nil and v.Parent:FindFirstChild("HitboxSerial" .. self.Serial) == nil and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+						table.insert(hitHumanoids, {hum, v})
+					end
+				end
+			end
+
+			for _,v in pairs(hitHumanoids) do
+				local canHit = true
+				for _,v2 in ipairs(registeredHumanoids) do
+					if v[1] == v2 then
+						canHit = false
+						break
+					end
+				end
+				if canHit == true then
+					if self.Debounce > 0 then
+						local newSerial: BoolValue = Instance.new("BoolValue")
+						Debris:AddItem(newSerial, self.Debounce)
+						newSerial.Name = "HitboxSerial" .. self.Serial
+						newSerial.Value = true
+						newSerial.Parent = v.Parent
+					end
+					---@diagnostic disable-next-line: redundant-parameter
+					self.Hit:Fire(v[1], v[2], { -- Humanoid, HitPart, HitboxDataBundle
+						["Serial"] = self.Serial,
+						["Position"] = self.Position,
+						["Radius"] = self.Radius or 0,
+						["Size"] = self.Size or Vector3.new(0, 0, 0)
+					})
+					table.insert(registeredHumanoids, v[1])
+					self.Pierce -= 1
+					if self.Pierce <= 0 then
+						break
+					end
+				end
+			end
+		end
+	end
+	if (self.LifeTime <= 0 and HitboxMode ~= "Bezier") or (HitboxMode == "Bezier" and self.Trajectory._Completion >= 1) then
+		self:Destroy()
+	end
 end
 
 -- Main runner
@@ -536,56 +536,56 @@ local function MainRunner(_, deltaTime: number): ()
 		if self.Active == true then
 			self._CurrentFrame += 1
 			self.LifeTime -= deltaTime
-            if deltaTime < 1/30 then
-                HitReg(self, deltaTime)
-            else
-                local Factor = math.floor(deltaTime / (1/60))
-                for i = 1, Factor do
-                    HitReg(self, deltaTime / Factor)
-                end
-            end
+			if deltaTime < 1/30 then
+				HitReg(self, deltaTime)
+			else
+				local Factor = math.floor(deltaTime / (1/60))
+				for i = 1, Factor do
+					HitReg(self, deltaTime / Factor)
+				end
+			end
 		end
 	end
-    for _,self: ZoneType in pairs(ActiveZones) do
-        if self.Active == true then
-            local Frames = 60 / self.Rate
-            self._CurrentFrame += 1
-            if self._CurrentFrame >= Frames then
-                self._CurrentFrame = 0
-                local CurrentPartList = self:GetPartsInside()
-                local CurrentCharacterList = self:GetCharactersInside(CurrentPartList)
-                local CurrentPlayerList = self:GetPlayersInside(CurrentPartList)
+	for _,self: ZoneType in pairs(ActiveZones) do
+		if self.Active == true then
+			local Frames = 60 / self.Rate
+			self._CurrentFrame += 1
+			if self._CurrentFrame >= Frames then
+				self._CurrentFrame = 0
+				local CurrentPartList = self:GetPartsInside()
+				local CurrentCharacterList = self:GetCharactersInside(CurrentPartList)
+				local CurrentPlayerList = self:GetPlayersInside(CurrentPartList)
 
-                local XLastPart, XCurrentPart = CompareTableValues(self._PartsInside, CurrentPartList)
-                for _,v in ipairs(XLastPart) do
-                    self.PartLeft:Fire(v)
-                end
-                for _,v in ipairs(XCurrentPart) do
-                    self.PartEntered:Fire(v)
-                end
+				local XLastPart, XCurrentPart = CompareTableValues(self._PartsInside, CurrentPartList)
+				for _,v in ipairs(XLastPart) do
+					self.PartLeft:Fire(v)
+				end
+				for _,v in ipairs(XCurrentPart) do
+					self.PartEntered:Fire(v)
+				end
 
-                local XLastCharacter, XCurrentCharacter = CompareTableValues(self._CharactersInside, CurrentCharacterList)
-                for _,v in ipairs(XLastCharacter) do
-                    self.CharacterLeft:Fire(v)
-                end
-                for _,v in ipairs(XCurrentCharacter) do
-                    self.CharacterEntered:Fire(v)
-                end
+				local XLastCharacter, XCurrentCharacter = CompareTableValues(self._CharactersInside, CurrentCharacterList)
+				for _,v in ipairs(XLastCharacter) do
+					self.CharacterLeft:Fire(v)
+				end
+				for _,v in ipairs(XCurrentCharacter) do
+					self.CharacterEntered:Fire(v)
+				end
 
-                local XLastPlayer, XCurrentPlayer = CompareTableValues(self._PlayersInside, CurrentPlayerList)
-                for _,v in ipairs(XLastPlayer) do
-                    self.PlayerLeft:Fire(v)
-                end
-                for _,v in ipairs(XCurrentPlayer) do
-                    self.PlayerEntered:Fire(v)
-                end
+				local XLastPlayer, XCurrentPlayer = CompareTableValues(self._PlayersInside, CurrentPlayerList)
+				for _,v in ipairs(XLastPlayer) do
+					self.PlayerLeft:Fire(v)
+				end
+				for _,v in ipairs(XCurrentPlayer) do
+					self.PlayerEntered:Fire(v)
+				end
 
-                self._PartsInside = CurrentPartList
-                self._CharactersInside = CurrentCharacterList
-                self._PlayersInside = CurrentPlayerList
-            end
-        end
-    end
+				self._PartsInside = CurrentPartList
+				self._CharactersInside = CurrentCharacterList
+				self._PlayersInside = CurrentPlayerList
+			end
+		end
+	end
 end
 RunService.Stepped:Connect(MainRunner)
 
@@ -595,12 +595,12 @@ RunService.Stepped:Connect(MainRunner)
 --]]
 local enum = {}
 local enumMetatable = {
-    __index = function(_, i): any
-        return enum[i] or error(concatPrint(i .. " is not a valid member of the Enum."), getStackLevel())
-    end,
-    __newindex = function(): ()
-        error(concatPrint("Enums are read-only."), getStackLevel())
-    end
+	__index = function(_, i): any
+		return enum[i] or error(concatPrint(i .. " is not a valid member of the Enum."), getStackLevel())
+	end,
+	__newindex = function(): ()
+		error(concatPrint("Enums are read-only."), getStackLevel())
+	end
 }
 
 enum._new = function(Name: string, Children: {string: any}): enumPair<any>
@@ -615,12 +615,12 @@ end
 
 enum._get = function(Name: string): enumPair<any>
 	if enum[Name] then
-		return {Name = setmetatable(enum[Name], enumMetatable)}
+		return setmetatable(enum[Name], enumMetatable)
 	else
 		local Result = DeepFind(enum, {Name = nil})
-        if Result ~= nil then
-            return setmetatable(Result, enumMetatable)
-        end
+		if Result ~= nil then
+			return setmetatable(Result, enumMetatable)
+		end
 	end
 end
 
@@ -633,7 +633,7 @@ enum._isEnum = function(ValueToCheck: any): boolean
 end
 
 enum._new("StateEnum", {Active = "Active", Paused = "Paused", Dead = "Dead"})
-enum._new("ConstructionMode", {None = nil, Linear = "Linear", Bezier = "Bezier"})
+enum._new("ConstructionMode", {None = "None", Linear = "Linear", Bezier = "Bezier"})
 enum._new("BezierMode", {Quadratic = "Quad", Cubic = "Cubic"})
 enum._new("Shape", {Box = "Box", Sphere = "Sphere"})
 enum._new("HitboxMode", {None = "None", Attachment = "Attachment", Linear = "Linear", Bezier = "Bezier", Orientation = "Orientation", Copying = "Copy"})
@@ -904,16 +904,16 @@ Hitbox.BezierEnum = enum._get("BezierMode")
 Hitbox.new = function(Fields: {Pair<string, any>}): HitboxType
 	Fields = Fields or {}
 	HitboxSerial += 1
-    local self = setmetatable({}, Hitbox)
+	local self = setmetatable({}, Hitbox)
 
-    -- Private variables
-    self._Attachment = Fields["Attachment"]
+	-- Private variables
+	self._Attachment = Fields["Attachment"]
 	self._CurrentFrame = 0
 	self._CanWarn = true
 	self._Visual = nil
 
-    -- Public variables
-    self.Hit = Signal.new()
+	-- Public variables
+	self.Hit = Signal.new()
 	self.Trajectory = Trajectory.new()
 	self.Serial = HitboxSerial
 	self.Shape = Fields["Shape"] or enum.Shape.Box
@@ -946,16 +946,16 @@ function Hitbox:Visualize(): BasePart?
 	end
 
 	self._Visual = Instance.new("Part")
-	self._Visual.Name = "HitboxVisualization" .. tostring(self:GetSerial())
+	self._Visual.Name = "HitboxVisualization" .. tostring(self.Serial)
 	self._Visual.Anchored = true
 	self._Visual.CanCollide = false
 	self._Visual.BrickColor = BrickColor.new("Really red")
 	self._Visual.Transparency = 0.75
 	self._Visual.Material = Enum.Material.SmoothPlastic
 	self._Visual.Position = self.Position or Vector3.new(0, 0, 0)
-	
+
 	if self.Shape == enum.Shape.Sphere then
-	    self._Visual.Shape = Enum.PartType.Ball
+		self._Visual.Shape = Enum.PartType.Ball
 		self._Visual.Size = Vector3.new(self.Radius * 2, self.Radius * 2, self.Radius * 2)
 	else
 		self._Visual.Shape = Enum.PartType.Block
@@ -963,7 +963,7 @@ function Hitbox:Visualize(): BasePart?
 	end
 
 	self._Visual.Parent = workspace
-	
+
 	return self._Visual
 end
 
@@ -974,10 +974,10 @@ function Hitbox:Unvisualize(doNotWarn: boolean?): ()
 		end
 		return false
 	end
-	
+
 	self._Visual:Destroy()
 	self._Visual = nil
-	
+
 	return true
 end
 
@@ -1068,7 +1068,7 @@ end
 
 function Hitbox:IsBackstab(Part: BasePart, Character: Model): boolean
 	local root: BasePart = Character:FindFirstChild("HumanoidRootPart")
-    if root then
+	if root then
 		if root.CFrame:inverse() * Part.CFrame < 0 then
 			return true
 		end
@@ -1093,121 +1093,121 @@ end
 --]]
 local Metatable = {}
 Metatable.__index = function(self, index)
-    if Metatable[index] ~= nil then
-        return Metatable[index]
-    else
-        return self._Members[index]
-    end
+	if Metatable[index] ~= nil then
+		return Metatable[index]
+	else
+		return self._Members[index]
+	end
 end
 
 Metatable.new = function(Members: {any}?): MetatableType
-    local self = setmetatable({}, Metatable)
-    self._Members = Members or {}
-    self._State = enum.StateEnum.Active
-    return self
+	local self = setmetatable({}, Metatable)
+	self._Members = Members or {}
+	self._State = enum.StateEnum.Active
+	return self
 end
 
 function Metatable:_CleanUp(): ()
-    local CullingList = {}
-    for i,v in ipairs(self._Members) do
-        if v.Instance == nil or #v.Connections < 1 or v.Instance.Parent == nil then
-            for _,v2 in pairs(v.Connections) do
-                if typeof(v2) == "RBXScriptConnection" then
-                    v2:Disconnect()
-                end
-            end
-            table.insert(CullingList, i)
-        end
-    end
-    CullTable(self._Members, CullingList)
+	local CullingList = {}
+	for i,v in ipairs(self._Members) do
+		if v.Instance == nil or #v.Connections < 1 or v.Instance.Parent == nil then
+			for _,v2 in pairs(v.Connections) do
+				if typeof(v2) == "RBXScriptConnection" then
+					v2:Disconnect()
+				end
+			end
+			table.insert(CullingList, i)
+		end
+	end
+	CullTable(self._Members, CullingList)
 end
 
 function Metatable:_Add(Value: Instance, Metafunctions: Pair<string, (any)>?): ()
-    Metafunctions = Metafunctions or {}
-    local Connections: RBXScriptConnection = {}
-    for i,v in pairs(Metafunctions) do
-        if typeof(Value[i]) == "RBXScriptSignal" and typeof(v) == "function" then
-            Connections[i] = Value[i]:Connect(v)
-        end
-    end
-    table.insert(self._Members, {Instance = Value, Connections = Connections})
+	Metafunctions = Metafunctions or {}
+	local Connections: RBXScriptConnection = {}
+	for i,v in pairs(Metafunctions) do
+		if typeof(Value[i]) == "RBXScriptSignal" and typeof(v) == "function" then
+			Connections[i] = Value[i]:Connect(v)
+		end
+	end
+	table.insert(self._Members, {Instance = Value, Connections = Connections})
 end
 
 function Metatable:_Remove(Value: Instance): ()
-    local CullingList = {}
-    for i,v in ipairs(self._Members) do
-        if v.Instance == nil or v.Instance == Value or v.Instance.Parent == nil then
-            for _,v2 in pairs(v.Connections) do
-                if typeof(v2) == "RBXScriptConnection" then
-                    v2:Disconnect()
-                end
-            end
-            table.insert(CullingList, i)
-        end
-    end
-    CullTable(self._Members, CullingList)
+	local CullingList = {}
+	for i,v in ipairs(self._Members) do
+		if v.Instance == nil or v.Instance == Value or v.Instance.Parent == nil then
+			for _,v2 in pairs(v.Connections) do
+				if typeof(v2) == "RBXScriptConnection" then
+					v2:Disconnect()
+				end
+			end
+			table.insert(CullingList, i)
+		end
+	end
+	CullTable(self._Members, CullingList)
 end
 
 function Metatable:_AddMetafunction(Value: Instance, Metafunctions: Pair<string, (any)>): ()
-    Metafunctions = Metafunctions or {}
-    for _,v in ipairs(self._Members) do
-        if v.Instance == Value then
-            for i,v2 in pairs(Metafunctions) do
-                if Value[i] ~= nil then
-                    v.Connections[i] = Value[i]:Connect(v2)
-                end
-            end
-        end
-    end
-    self:_CleanUp()
+	Metafunctions = Metafunctions or {}
+	for _,v in ipairs(self._Members) do
+		if v.Instance == Value then
+			for i,v2 in pairs(Metafunctions) do
+				if Value[i] ~= nil then
+					v.Connections[i] = Value[i]:Connect(v2)
+				end
+			end
+		end
+	end
+	self:_CleanUp()
 end
 
 function Metatable:_RemoveMetafunction(Value: Instance, Metafunctions: {string}): ()
-    Metafunctions = Metafunctions or {}
-    for _,v in ipairs(self._Members) do
-        if v.Instance == Value or v.Instance == nil or v.Instance.Parent == nil then
-            local CullingList = {}
-            for _,v2 in pairs(Metafunctions) do
-                if typeof(v.Connections[v2]) == "RBXScriptConnection" then
-                    v.Connections[v2]:Disconnect()
-                    table.insert(CullingList, v2)
-                end
-            end
-            CullTable(v.Connections, CullingList)
-        end
-    end
-    self:_CleanUp()
+	Metafunctions = Metafunctions or {}
+	for _,v in ipairs(self._Members) do
+		if v.Instance == Value or v.Instance == nil or v.Instance.Parent == nil then
+			local CullingList = {}
+			for _,v2 in pairs(Metafunctions) do
+				if typeof(v.Connections[v2]) == "RBXScriptConnection" then
+					v.Connections[v2]:Disconnect()
+					table.insert(CullingList, v2)
+				end
+			end
+			CullTable(v.Connections, CullingList)
+		end
+	end
+	self:_CleanUp()
 end
 
 function Metatable:_IsMember(Value: Instance): boolean
-    for _,v in ipairs(self._Members) do
-        if v.Instance == Value then
-            return true
-        end
-    end
-    return false
+	for _,v in ipairs(self._Members) do
+		if v.Instance == Value then
+			return true
+		end
+	end
+	return false
 end
 
 function Metatable:_GetMembers(): {BasePart}
-    local MemberList = {}
-    for _,v in ipairs(self._Members) do
-        if typeof(v.Instance) == "Instance" then
-            table.insert(MemberList, v.Instance)
-        end
-    end
-    return MemberList
+	local MemberList = {}
+	for _,v in ipairs(self._Members) do
+		if typeof(v.Instance) == "Instance" then
+			table.insert(MemberList, v.Instance)
+		end
+	end
+	return MemberList
 end
 
 function Metatable:Destroy(): ()
-    for _,v in ipairs(self._Members) do
-        for _,v2 in pairs(v.Connections) do
-            if typeof(v2) == "RBXScriptConnection" then
-                v2:Disconnect()
-            end
-        end
-    end
-    self._Members = {}
-    self = {_State = enum.StateEnum.Dead}
+	for _,v in ipairs(self._Members) do
+		for _,v2 in pairs(v.Connections) do
+			if typeof(v2) == "RBXScriptConnection" then
+				v2:Disconnect()
+			end
+		end
+	end
+	self._Members = {}
+	self = {_State = enum.StateEnum.Dead}
 end
 
 --[[
@@ -1218,108 +1218,108 @@ local ZoneComponent = {}
 ZoneComponent.__index = ZoneComponent
 
 ZoneComponent.new = function(Fields: Pair<string, any>?): ZoneComponentType
-    Fields = Fields or {}
-    local self = setmetatable({}, ZoneComponent)
+	Fields = Fields or {}
+	local self = setmetatable({}, ZoneComponent)
 
-    -- Private variables
-    self._Part = nil
-    self._State = enum.StateEnum.Active
+	-- Private variables
+	self._Part = nil
+	self._State = enum.StateEnum.Active
 
-    -- Public variables
-    self.Shape = Fields["Shape"] or Enum.PartType.Block
-    self.CFrame = Fields["CFrame"] or CFrame.new(0, 0, 0)
-    if (self.CFrame == CFrame.new(0, 0, 0) or self.CFrame == nil) and typeof(Fields["Position"]) == "Vector3" then
-        self.CFrame = CFrame.new(self.Position)
-    end
-    if typeof(Fields["Orientation"]) == "Vector3" then
-        self.CFrame *= CFrame.Angles(Fields["Orientation"])
-    end
-    self.Size = Fields["Size"] or Vector3.new(3, 3, 3)
+	-- Public variables
+	self.Shape = Fields["Shape"] or Enum.PartType.Block
+	self.CFrame = Fields["CFrame"] or CFrame.new(0, 0, 0)
+	if (self.CFrame == CFrame.new(0, 0, 0) or self.CFrame == nil) and typeof(Fields["Position"]) == "Vector3" then
+		self.CFrame = CFrame.new(self.Position)
+	end
+	if typeof(Fields["Orientation"]) == "Vector3" then
+		self.CFrame *= CFrame.Angles(Fields["Orientation"])
+	end
+	self.Size = Fields["Size"] or Vector3.new(3, 3, 3)
 
-    return self
+	return self
 end
 
 function ZoneComponent:_NewPart(): ()
-    self._Part.Shape = self.Shape
-    self._Part.Size = self.Size
-    self._Part.CFrame = self.CFrame
-    self._Part.Transparency = 1
-    self._Part.Anchored = true
-    self._Part.CanCollide = false
-    self._Part.CanTouch = false
-    self._Part.Massless = true
-    self._Part.CastShadow = false
-    self._Part.Parent = ZoneFolder
+	self._Part.Shape = self.Shape
+	self._Part.Size = self.Size
+	self._Part.CFrame = self.CFrame
+	self._Part.Transparency = 1
+	self._Part.Anchored = true
+	self._Part.CanCollide = false
+	self._Part.CanTouch = false
+	self._Part.Massless = true
+	self._Part.CastShadow = false
+	self._Part.Parent = ZoneFolder
 end
 
 function ZoneComponent:Query(QueryType: string, Params: OverlapParams): {BasePart}
-    Params = Params or OverlapParams.new()
-    if QueryType == enum.QueryType.Bounds then
-        if self._Part ~= nil then
-            self._Part:Destroy()
-        end
-        if self.Shape == Enum.PartType.Block then
-            return workspace:GetPartBoundsInBox(self.CFrame, self.Size, Params)
-        elseif self.Shape == Enum.PartType.Ball then
-            return workspace:GetPartBoundsInRadius(self.CFrame, self.Size, Params)
-        end
-    elseif QueryType == enum.QueryType.Full then
-        if self._Part == nil then
-            self:_NewPart()
-        elseif self._Part.CFrame ~= self.CFrame or self._Part.Size ~= self.Size or self._Part.Shape ~= self.Shape then
-            self._Part:Destroy()
-            self:_NewPart()
-        end
-        return workspace:GetPartsInPart(self._Part, Params)
-    end
+	Params = Params or OverlapParams.new()
+	if QueryType == enum.QueryType.Bounds then
+		if self._Part ~= nil then
+			self._Part:Destroy()
+		end
+		if self.Shape == Enum.PartType.Block then
+			return workspace:GetPartBoundsInBox(self.CFrame, self.Size, Params)
+		elseif self.Shape == Enum.PartType.Ball then
+			return workspace:GetPartBoundsInRadius(self.CFrame, self.Size, Params)
+		end
+	elseif QueryType == enum.QueryType.Full then
+		if self._Part == nil then
+			self:_NewPart()
+		elseif self._Part.CFrame ~= self.CFrame or self._Part.Size ~= self.Size or self._Part.Shape ~= self.Shape then
+			self._Part:Destroy()
+			self:_NewPart()
+		end
+		return workspace:GetPartsInPart(self._Part, Params)
+	end
 end
 
 function ZoneComponent:GetCharacters(CharacterResolution: string, QueryType: string, Params: OverlapParams): {Model}
-    local PartList = self:Query(QueryType, Params)
-    local CharacterList = {}
-    for _,v in ipairs(PartList) do
-        if v.Parent:FindFirstChildOfClass("Humanoid") then
-            if CharacterList[v.Parent] == nil then
-                local CharacterParts = {}
-                for _,v2 in ipairs(v.Parent:GetChildren()) do
-                    if v2:IsA("BasePart") then
-                        CharacterParts[v2] = false
-                    end
-                end
-                CharacterParts[v] = true
-                CharacterList[v.Parent] = CharacterParts
-            else
-                CharacterList[v.Parent][v] = true
-            end
-        end
-    end
-    return CharacterQuerySearch(CharacterList, CharacterResolution)
+	local PartList = self:Query(QueryType, Params)
+	local CharacterList = {}
+	for _,v in ipairs(PartList) do
+		if v.Parent:FindFirstChildOfClass("Humanoid") then
+			if CharacterList[v.Parent] == nil then
+				local CharacterParts = {}
+				for _,v2 in ipairs(v.Parent:GetChildren()) do
+					if v2:IsA("BasePart") then
+						CharacterParts[v2] = false
+					end
+				end
+				CharacterParts[v] = true
+				CharacterList[v.Parent] = CharacterParts
+			else
+				CharacterList[v.Parent][v] = true
+			end
+		end
+	end
+	return CharacterQuerySearch(CharacterList, CharacterResolution)
 end
 
 function ZoneComponent:GetPlayers(CharacterResolution: string, QueryType: string, Params: OverlapParams): {Model}
-    local PartList = self:Query(QueryType, Params)
-    local CharacterList = {}
-    for _,v in ipairs(Players:GetPlayers()) do
-        if v.Character ~= nil then
-            local CharacterParts = {}
-            for _,v2 in ipairs(v.Character:GetChildren()) do
-                if v2:IsA("BasePart") then
-                    CharacterParts[v2] = false
-                end
-            end
-            CharacterList[v.Character] = CharacterParts
-        end
-    end
-    for _,v in ipairs(PartList) do
-        if CharacterList[v.Parent] ~= nil then
-            CharacterList[v.Parent][v] = true
-        end
-    end
-    return CharacterQuerySearch(CharacterList, CharacterResolution)
+	local PartList = self:Query(QueryType, Params)
+	local CharacterList = {}
+	for _,v in ipairs(Players:GetPlayers()) do
+		if v.Character ~= nil then
+			local CharacterParts = {}
+			for _,v2 in ipairs(v.Character:GetChildren()) do
+				if v2:IsA("BasePart") then
+					CharacterParts[v2] = false
+				end
+			end
+			CharacterList[v.Character] = CharacterParts
+		end
+	end
+	for _,v in ipairs(PartList) do
+		if CharacterList[v.Parent] ~= nil then
+			CharacterList[v.Parent][v] = true
+		end
+	end
+	return CharacterQuerySearch(CharacterList, CharacterResolution)
 end
 
 function ZoneComponent:Destroy(): ()
-    self = {_State = enum.StateEnum.Dead}
+	self = {_State = enum.StateEnum.Dead}
 end
 
 --[[
@@ -1334,260 +1334,260 @@ Zone.QueryTypeEnum = enum._get("QueryType")
 enum.StateEnum = enum._get("StateEnum")
 
 Zone.new = function(Fields: Pair<string, any>): ZoneType
-    Fields = Fields or {}
+	Fields = Fields or {}
 	HitboxSerial += 1
-    local self = setmetatable({}, Zone)
+	local self = setmetatable({}, Zone)
 
-    -- Private variables
+	-- Private variables
 	self._CurrentFrame = 0
 	self._CanWarn = true
 	self._Visual = nil
-    self._MemberParts = Metatable.new(Fields["Members"] or nil)
-    self._MemberComponents = {}
-    self._CharactersInside = {}
-    self._PlayersInside = {}
-    self._PartsInside = {}
+	self._MemberParts = Metatable.new(Fields["Members"] or nil)
+	self._MemberComponents = {}
+	self._CharactersInside = {}
+	self._PlayersInside = {}
+	self._PartsInside = {}
 
-    -- Public variables
-    self.CharacterEntered = Signal.new()
-    self.CharacterLeft = Signal.new()
-    self.PlayerEntered = Signal.new()
-    self.PlayerLeft = Signal.new()
-    self.PartEntered = Signal.new()
-    self.PartLeft = Signal.new()
+	-- Public variables
+	self.CharacterEntered = Signal.new()
+	self.CharacterLeft = Signal.new()
+	self.PlayerEntered = Signal.new()
+	self.PlayerLeft = Signal.new()
+	self.PartEntered = Signal.new()
+	self.PartLeft = Signal.new()
 
-    self.Serial = HitboxSerial
-    self.CharacterResolution = Fields["CharacterResolution"] or enum.CharacterResolution.FullBody
-    self.QueryType = Fields["QueryType"] or enum.QueryType.Bounds
-    self.Rate = Fields["Rate"] or 10 -- How many checks per second
-    self.OverlapParams = OverlapParams.new()
+	self.Serial = HitboxSerial
+	self.CharacterResolution = Fields["CharacterResolution"] or enum.CharacterResolution.FullBody
+	self.QueryType = Fields["QueryType"] or enum.QueryType.Bounds
+	self.Rate = Fields["Rate"] or 10 -- How many checks per second
+	self.OverlapParams = OverlapParams.new()
 	self.OverlapParams.FilterType = Enum.RaycastFilterType.Exclude
 	self.OverlapParams.FilterDescendantsInstances = {}
 	self.OverlapParams.RespectCanCollide = false
 	self.OverlapParams.MaxParts = 0
 	self.Active = Fields["Active"] or false
-    if self.Active == true then
-        self.State = enum.StateEnum.Active
-    else
-        self.State = enum.StateEnum.Paused
-    end
+	if self.Active == true then
+		self.State = enum.StateEnum.Active
+	else
+		self.State = enum.StateEnum.Paused
+	end
 
-    for _,v in ipairs(self._MemberParts) do
-        if typeof(v) == "Instance" and v:IsA("BasePart") then
-            table.insert(self._MemberComponents, ZoneComponent.new({
-                ["Shape"] = v.Shape,
-                ["CFrame"] = v.CFrame,
-                ["Size"] = v.Size
-            }))
-        end
-    end
+	for _,v in ipairs(self._MemberParts) do
+		if typeof(v) == "Instance" and v:IsA("BasePart") then
+			table.insert(self._MemberComponents, ZoneComponent.new({
+				["Shape"] = v.Shape,
+				["CFrame"] = v.CFrame,
+				["Size"] = v.Size
+			}))
+		end
+	end
 
-    if typeof(Fields["Components"]) == "table" then
-        for _,v in ipairs(Fields["Components"]) do
-            if typeof(v) == "table" and v.Shape ~= nil and v.CFrame ~= nil and v.Size ~= nil then
-                self._MemberComponents[FindHighestIndex(self._MemberComponents) + 1] = v
-            end
-        end
-    end
+	if typeof(Fields["Components"]) == "table" then
+		for _,v in ipairs(Fields["Components"]) do
+			if typeof(v) == "table" and v.Shape ~= nil and v.CFrame ~= nil and v.Size ~= nil then
+				self._MemberComponents[FindHighestIndex(self._MemberComponents) + 1] = v
+			end
+		end
+	end
 
-    ActiveZones[self.Serial] = self
+	ActiveZones[self.Serial] = self
 
-    return self
+	return self
 end
 
 function Zone:Update(): ()
-    for i,v in pairs(self._MemberComponents) do
-        if typeof(i) == "Instance" then
-            if i.Parent == nil then
-                v:Destroy()
-                self._MemberComponents[i] = nil
-            elseif self._MemberParts:_IsMember(v) == false then
-                v:Destroy()
-                self._MemberComponents[i] = nil
-            else
-                v.CFrame = i.CFrame
-                v.Size = i.Size
-                v.Shape = i.Shape
-            end
-        end
-    end
-    for _,v in ipairs(self._MemberParts._Members) do
-        if self._MemberComponents[v.Instance] == nil then
-            self._MemberComponents[v.Instance] = ZoneComponent.new({
-                ["Shape"] = v.Instance.Shape,
-                ["CFrame"] = v.Instance.CFrame,
-                ["Size"] = v.Instance.Size
-            })
-        end
-    end
-    self._MemberParts:_CleanUp()
+	for i,v in pairs(self._MemberComponents) do
+		if typeof(i) == "Instance" then
+			if i.Parent == nil then
+				v:Destroy()
+				self._MemberComponents[i] = nil
+			elseif self._MemberParts:_IsMember(v) == false then
+				v:Destroy()
+				self._MemberComponents[i] = nil
+			else
+				v.CFrame = i.CFrame
+				v.Size = i.Size
+				v.Shape = i.Shape
+			end
+		end
+	end
+	for _,v in ipairs(self._MemberParts._Members) do
+		if self._MemberComponents[v.Instance] == nil then
+			self._MemberComponents[v.Instance] = ZoneComponent.new({
+				["Shape"] = v.Instance.Shape,
+				["CFrame"] = v.Instance.CFrame,
+				["Size"] = v.Instance.Size
+			})
+		end
+	end
+	self._MemberParts:_CleanUp()
 end
 
 function Zone:Relocate(newCFrame: CFrame): ()
-    -- WIP
+	-- WIP
 end
 
 function Zone:AddMember(part: BasePart, Metafunctions: Pair<string, (any)>?): ()
-    if self._MemberParts:_IsMember(part) == false then
-        Metafunctions["Destroying"] = function()
-            task.wait()
-            self._MemberParts:_CleanUp()
-            task.wait()
-        end
-        self._MemberParts:_Add(part, Metafunctions)
-    end
+	if self._MemberParts:_IsMember(part) == false then
+		Metafunctions["Destroying"] = function()
+			task.wait()
+			self._MemberParts:_CleanUp()
+			task.wait()
+		end
+		self._MemberParts:_Add(part, Metafunctions)
+	end
 end
 
 function Zone:RemoveMember(part: BasePart): ()
-    if self._MemberParts:_IsMember(part) == true then
-        self._MemberParts:_Remove(part)
-    end
+	if self._MemberParts:_IsMember(part) == true then
+		self._MemberParts:_Remove(part)
+	end
 end
 
 function Zone:AddComponent(Component: ZoneComponentType): number?
-    if typeof(Component) == "table" and Component.Shape ~= nil and Component.CFrame ~= nil and Component.Size ~= nil then
-        local index = FindHighestIndex(self._MemberComponents) + 1
-        self._MemberComponents[index] = Component
-        return index
-    end
-    return nil
+	if typeof(Component) == "table" and Component.Shape ~= nil and Component.CFrame ~= nil and Component.Size ~= nil then
+		local index = FindHighestIndex(self._MemberComponents) + 1
+		self._MemberComponents[index] = Component
+		return index
+	end
+	return nil
 end
 
 function Zone:RemoveComponent(index: BasePart | number): ()
-    for i,v in pairs(self._MemberComponents) do
-        if i == index then
-            v:Destroy()
-            self._MemberComponents[i] = nil
-            if typeof(index) == "Instance" then
-                self:RemoveMember(index)
-            end
-        end
-    end
+	for i,v in pairs(self._MemberComponents) do
+		if i == index then
+			v:Destroy()
+			self._MemberComponents[i] = nil
+			if typeof(index) == "Instance" then
+				self:RemoveMember(index)
+			end
+		end
+	end
 end
 
 function Zone:IsPartInside(Part: BasePart): boolean
-    for _,v in ipairs(self._PartsInside) do
-        if v == Part then
-            return true
-        end
-    end
-    return false
+	for _,v in ipairs(self._PartsInside) do
+		if v == Part then
+			return true
+		end
+	end
+	return false
 end
 
 function Zone:IsCharacterInside(Character: Model): boolean
-    for _,v in ipairs(self._CharactersInside) do
-        if v == Character then
-            return true
-        end
-    end
-    return false
+	for _,v in ipairs(self._CharactersInside) do
+		if v == Character then
+			return true
+		end
+	end
+	return false
 end
 
 function Zone:IsPlayerInside(Character: Model): boolean
-    for _,v in ipairs(self._PlayersInside) do
-        if v == Character then
-            return true
-        end
-    end
-    return false
+	for _,v in ipairs(self._PlayersInside) do
+		if v == Character then
+			return true
+		end
+	end
+	return false
 end
 
 function Zone:GetPartsInside(): {BasePart}
-    local PartList = {}
-    for _,v in pairs(self._MemberComponents) do
-        for _,v2 in ipairs(v:Query(self.QueryType, self.OverlapParams)) do
-            table.insert(PartList, v2)
-        end
-    end
-    return PartList
+	local PartList = {}
+	for _,v in pairs(self._MemberComponents) do
+		for _,v2 in ipairs(v:Query(self.QueryType, self.OverlapParams)) do
+			table.insert(PartList, v2)
+		end
+	end
+	return PartList
 end
 
 function Zone:GetCharactersInside(PartList: {BasePart}?): {Model}
-    local CharacterList = {}
-    if typeof(PartList) == "table" then
-        for _,v in ipairs(PartList) do
-            if v.Parent:FindFirstChildOfClass("Humanoid") then
-                if CharacterList[v.Parent] == nil then
-                    local CharacterParts = {}
-                    for _,v2 in ipairs(v.Parent:GetChildren()) do
-                        if v2:IsA("BasePart") then
-                            CharacterParts[v2] = false
-                        end
-                    end
-                    CharacterParts[v] = true
-                    CharacterList[v.Parent] = CharacterParts
-                else
-                    CharacterList[v.Parent][v] = true
-                end
-            end
-        end
-        return CharacterQuerySearch(CharacterList, self.CharacterResolution)
-    else
-        for _,v in pairs(self._MemberComponents) do
-            for _,v2 in ipairs(v:GetCharacters(self.CharacterResolution, self.QueryType, self.OverlapParams)) do
-                table.insert(CharacterList, v2)
-            end
-        end
-        return CharacterList
-    end
+	local CharacterList = {}
+	if typeof(PartList) == "table" then
+		for _,v in ipairs(PartList) do
+			if v.Parent:FindFirstChildOfClass("Humanoid") then
+				if CharacterList[v.Parent] == nil then
+					local CharacterParts = {}
+					for _,v2 in ipairs(v.Parent:GetChildren()) do
+						if v2:IsA("BasePart") then
+							CharacterParts[v2] = false
+						end
+					end
+					CharacterParts[v] = true
+					CharacterList[v.Parent] = CharacterParts
+				else
+					CharacterList[v.Parent][v] = true
+				end
+			end
+		end
+		return CharacterQuerySearch(CharacterList, self.CharacterResolution)
+	else
+		for _,v in pairs(self._MemberComponents) do
+			for _,v2 in ipairs(v:GetCharacters(self.CharacterResolution, self.QueryType, self.OverlapParams)) do
+				table.insert(CharacterList, v2)
+			end
+		end
+		return CharacterList
+	end
 end
 
 function Zone:GetPlayersInside(PartList: {BasePart}?): {Model}
-    local CharacterList = {}
-    if typeof(PartList) == "table" then
-        for _,v in ipairs(Players:GetPlayers()) do
-            if v.Character ~= nil then
-                local CharacterParts = {}
-                for _,v2 in ipairs(v.Character:GetChildren()) do
-                    if v2:IsA("BasePart") then
-                        CharacterParts[v2] = false
-                    end
-                end
-                CharacterList[v.Character] = CharacterParts
-            end
-        end
-        for _,v in ipairs(PartList) do
-            if CharacterList[v.Parent] ~= nil then
-                CharacterList[v.Parent][v] = true
-            end
-        end
-        return CharacterQuerySearch(CharacterList, self.CharacterResolution)
-    else
-        for _,v in pairs(self._MemberComponents) do
-            for _,v2 in ipairs(v:GetPlayers(self.CharacterResolution, self.QueryType, self.OverlapParams)) do
-                table.insert(CharacterList, v2)
-            end
-        end
-        return CharacterList
-    end
+	local CharacterList = {}
+	if typeof(PartList) == "table" then
+		for _,v in ipairs(Players:GetPlayers()) do
+			if v.Character ~= nil then
+				local CharacterParts = {}
+				for _,v2 in ipairs(v.Character:GetChildren()) do
+					if v2:IsA("BasePart") then
+						CharacterParts[v2] = false
+					end
+				end
+				CharacterList[v.Character] = CharacterParts
+			end
+		end
+		for _,v in ipairs(PartList) do
+			if CharacterList[v.Parent] ~= nil then
+				CharacterList[v.Parent][v] = true
+			end
+		end
+		return CharacterQuerySearch(CharacterList, self.CharacterResolution)
+	else
+		for _,v in pairs(self._MemberComponents) do
+			for _,v2 in ipairs(v:GetPlayers(self.CharacterResolution, self.QueryType, self.OverlapParams)) do
+				table.insert(CharacterList, v2)
+			end
+		end
+		return CharacterList
+	end
 end
 
 function Zone:Activate(): ()
-    self.Active = true
-    self.State = enum.StateEnum.Active
+	self.Active = true
+	self.State = enum.StateEnum.Active
 end
 
 function Zone:Deactivate(): ()
-    self.Active = false
-    self.State = enum.StateEnum.Paused
+	self.Active = false
+	self.State = enum.StateEnum.Paused
 end
 
 function Zone:Destroy(): ()
-    self.Active = false
-    self.CharacterEntered:Destroy()
-    self.CharacterLeft:Destroy()
-    self.PlayerEntered:Destroy()
-    self.PlayerLeft:Destroy()
-    self.PartEntered:Destroy()
-    self.PartLeft:Destroy()
-    self._MemberParts:Destroy()
-    for _,v in pairs(self._MemberComponents) do
-        v:Destroy()
-    end
+	self.Active = false
+	self.CharacterEntered:Destroy()
+	self.CharacterLeft:Destroy()
+	self.PlayerEntered:Destroy()
+	self.PlayerLeft:Destroy()
+	self.PartEntered:Destroy()
+	self.PartLeft:Destroy()
+	self._MemberParts:Destroy()
+	for _,v in pairs(self._MemberComponents) do
+		v:Destroy()
+	end
 
-    ActiveZones[self.Serial] = nil
+	ActiveZones[self.Serial] = nil
 
-    self = {State = enum.StateEnum.Dead}
+	self = {State = enum.StateEnum.Dead}
 end
 
 --[[
@@ -1598,38 +1598,38 @@ end
 local Module = {}
 
 Module.newHitbox = function(...): HitboxType -- Can be ran on both client and server
-    return Hitbox.new(...)
+	return Hitbox.new(...)
 end
 
 Module.newZone = function(...): ZoneType -- Can be ran on both client and server
-    return Zone.new(...)
+	return Zone.new(...)
 end
 
 Module.newEnum = function(): {enumPair<string>} -- Can be ran on both client and server
-    return setmetatable(enum, enumMetatable)
+	return setmetatable(enum, enumMetatable)
 end
 
 Module.newSignal = function(): ScriptSignal -- Can be ran on both client and server
-    return Signal.new()
+	return Signal.new()
 end
 
 Module.newMetatable = function(...): MetatableType -- Can be ran on both client and server
-    return Metatable.new(...)
+	return Metatable.new(...)
 end
 
 Module.newZoneComponent = function(...): ZoneComponentType -- Can be ran on both client and server
-    return ZoneComponent.new(...)
+	return ZoneComponent.new(...)
 end
 
 function Module:CharacterListToPlayerList(CharacterList: {Model}): {Player}
-    local PlayerList = {}
-    for _,v in ipairs(CharacterList) do
-        local Player = Players:GetPlayerFromCharacter(v)
-        if Player ~= nil then
-            table.insert(PlayerList, Player)
-        end
-    end
-    return PlayerList
+	local PlayerList = {}
+	for _,v in ipairs(CharacterList) do
+		local Player = Players:GetPlayerFromCharacter(v)
+		if Player ~= nil then
+			table.insert(PlayerList, Player)
+		end
+	end
+	return PlayerList
 end
 
 return Module
