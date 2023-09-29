@@ -207,8 +207,9 @@ local DebugMode = true
 local HitboxSerial = 0
 local ActiveHitboxes = {}
 local ActiveZones = {}
-local ZoneFolder = workspace:FindFirstChild("ZoneFolder") or Instance.new("Folder", workspace)
+local ZoneFolder = workspace:FindFirstChild("ZoneFolder") or Instance.new("Folder")
 ZoneFolder.Name = "ZoneFolder"
+ZoneFolder.Parent = workspace
 
 --[[
     @function
@@ -1402,10 +1403,7 @@ end
 function Zone:Update(): ()
 	for i,v in pairs(self._MemberComponents) do
 		if typeof(i) == "Instance" then
-			if i.Parent == nil then
-				v:Destroy()
-				self._MemberComponents[i] = nil
-			elseif self._MemberParts:_IsMember(v) == false then
+			if i.Parent == nil or self._MemberParts:_IsMember(v) == false then
 				v:Destroy()
 				self._MemberComponents[i] = nil
 			else
