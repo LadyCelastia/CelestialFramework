@@ -1320,6 +1320,9 @@ function ZoneComponent:GetPlayers(CharacterResolution: string, QueryType: string
 end
 
 function ZoneComponent:Destroy(): ()
+	if typeof(self._Part) == "Instance" then
+		self._Part:Destroy()
+	end
 	self = {_State = enum.StateEnum.Dead}
 end
 
