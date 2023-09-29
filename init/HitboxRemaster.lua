@@ -507,7 +507,7 @@ local function HitReg(self: HitboxType, deltaTime: number): {BasePart}
 						Debris:AddItem(newSerial, self.Debounce)
 						newSerial.Name = "HitboxSerial" .. self.Serial
 						newSerial.Value = true
-						newSerial.Parent = v.Parent
+						newSerial.Parent = v[2].Parent
 					end
 					---@diagnostic disable-next-line: redundant-parameter
 					self.Hit:Fire(v[1], v[2], { -- Humanoid, HitPart, HitboxDataBundle
@@ -1026,7 +1026,8 @@ end
 function Hitbox:AddIgnore(object: Instance): boolean
 	if typeof(object) == "Instance" then
 		if object:IsA("BasePart") or object:IsA("Model") then
-			self.OverlapParams.FilterDescendantsInstances = table.insert(self.OverlapParams.FilterDescendantsInstances or {}, object)
+			self.OverlapParams.FilterDescendantsInstances = self.OverlapParams.FilterDescendantsInstances or {}
+			table.insert(self.OverlapParams.FilterDescendantsInstances, object)
 			return true
 		end
 	end
